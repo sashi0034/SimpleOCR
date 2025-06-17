@@ -1,0 +1,84 @@
+﻿#include "pch.h"
+#include "NeuralNetwork.h"
+
+#include "NP.h"
+
+namespace
+{
+    Array<float> activation(const Array<float>& a)
+    {
+        Array<float> y(a.size());
+        for (int i = 0; i < a.size(); ++i)
+        {
+            // Sigmoid activation function
+            y[i] = 1.0f / (1.0f + std::expf(-a[i]));
+        }
+
+        return y;
+    }
+
+    Array<float> softmax(const Array<float>& a)
+    {
+        float alpha = a[0];
+        for (int i = 1; i < a.size(); ++i)
+        {
+            if (a[i] > alpha) alpha = a[i];
+        }
+
+        Array<float> y(a.size());
+        float sum{};
+        for (int i = 0; i < a.size(); ++i)
+        {
+            y[i] = std::expf(a[i] - alpha);
+            sum += y[i];
+        }
+
+        for (int i = 0; i < a.size(); ++i)
+        {
+            y[i] = y[i] / sum;
+        }
+
+        return y;
+    }
+}
+
+namespace ocr
+{
+    int NeuralNetworkOutput::maxIndex() const
+    {
+        int maxIndex = 0;
+        const auto& output = y2;
+        float maxValue = y2[0];
+        for (int i = 1; i < output.size(); ++i)
+        {
+            if (output[i] > maxValue)
+            {
+                maxValue = output[i];
+                maxIndex = i;
+            }
+        }
+
+        return maxIndex;
+    }
+
+    NeuralNetworkOutput NeuralNetwork(const NeuralNetworkInput& input)
+    {
+        NeuralNetworkOutput output{};
+
+        // ----------------------------------------------- 入力層 --> 中間層
+
+        Array<float> a1 = input.b1;
+        NP::GEMM(input.x, input.w1, a1); // a1 = x * w1 + b1
+
+        output.y1 = activation(a1);
+
+        // ----------------------------------------------- 中間層 --> 出力層
+
+        Array<float> a2 = input.b2;
+        NP::GEMM(output.y1, input.w2, a2); // y2 = y1 * w2 + b2
+
+        output.y2 = softmax(a2);
+
+        return output;
+    }
+}

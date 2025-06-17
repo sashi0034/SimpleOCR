@@ -4,10 +4,12 @@
 #include "DatasetImage.h"
 #include "DatasetLoader.h"
 #include "LivePPAddon.h"
+#include "NeuralNetwork.h"
 #include "TY/Gpgpu.h"
 #include "TY/Image.h"
 #include "TY/Logger.h"
 #include "TY/Math.h"
+#include "TY/Random.h"
 #include "TY/System.h"
 #include "TY/Texture.h"
 
@@ -17,6 +19,9 @@ using namespace ocr;
 
 namespace
 {
+    constexpr int midNodeCount = 128;
+
+    constexpr int labelCount = 10;
 }
 
 struct EntryPointImpl
@@ -30,7 +35,9 @@ struct EntryPointImpl
     PixelShader m_texturePS{};
     VertexShader m_textureVS{};
 
+    int m_trainImageIndex{};
     Texture m_previewTexture{};
+    int m_predictedLabel{};
 
     DatasetImageList m_trainImages{};
     Array<uint8_t> m_trainLabels{};
@@ -68,7 +75,9 @@ struct EntryPointImpl
         m_texturePS = PixelShader{ShaderParams::PS("asset/shader/default2d.hlsl")};
         m_textureVS = VertexShader{ShaderParams::VS("asset/shader/default2d.hlsl")};
 
-        m_previewTexture = makePreviewTexture(0);
+        m_trainImageIndex = 0;
+        m_previewTexture = makePreviewTexture(m_trainImageIndex);
+        m_predictedLabel = runNeuralNetwork(m_trainImageIndex);
     }
 
     void Update()
@@ -80,15 +89,17 @@ struct EntryPointImpl
         {
             ImGui::Begin("Train Images");
 
-            static int s_trainImageIndex{};
-            if (ImGui::InputInt("Index", &s_trainImageIndex))
+            if (ImGui::InputInt("Index", &m_trainImageIndex))
             {
-                s_trainImageIndex =
-                    Math::Clamp(s_trainImageIndex, 0, static_cast<int>(m_trainImages.images.size() - 1));
-                m_previewTexture = makePreviewTexture(s_trainImageIndex);
+                m_trainImageIndex =
+                    Math::Clamp(m_trainImageIndex, 0, static_cast<int>(m_trainImages.images.size() - 1));
+                m_previewTexture = makePreviewTexture(m_trainImageIndex);
+                m_predictedLabel = runNeuralNetwork(m_trainImageIndex);
             }
 
-            ImGui::Text("Actual Label: %d", m_trainLabels[s_trainImageIndex]);
+            ImGui::Text("Actual Label: %d", m_trainLabels[m_trainImageIndex]);
+
+            ImGui::Text("Predicted Label: %d", m_predictedLabel);
 
             ImGui::End();
         }
@@ -120,7 +131,7 @@ struct EntryPointImpl
     }
 
 private:
-    Texture makePreviewTexture(int index)
+    Texture makePreviewTexture(int index) const
     {
         return Texture{
             TextureParams()
@@ -128,6 +139,29 @@ private:
             .setPS(m_texturePS)
             .setVS(m_textureVS)
         };
+    }
+
+    int runNeuralNetwork(int index)
+    {
+        NeuralNetworkInput neuralInput{};
+
+        neuralInput.x = m_trainImages.images[index].map([](uint8_t pixel)
+        {
+            return static_cast<float>(pixel) / 255.0f;
+        });
+
+        neuralInput.w1 = Matrix(neuralInput.x.size(), midNodeCount);
+        neuralInput.w1.data() = neuralInput.w1.data().map([](uint8_t) { return Random::Float(-1.0f, 1.0f); });
+
+        neuralInput.b1 = Array<float>(midNodeCount).map([](uint8_t) { return Random::Float(-1.0f, 1.0f); });
+
+        neuralInput.w2 = Matrix(midNodeCount, labelCount);
+        neuralInput.w2.data() = neuralInput.w2.data().map([](uint8_t) { return Random::Float(-1.0f, 1.0f); });
+
+        neuralInput.b2 = Array<float>(labelCount).map([](uint8_t) { return Random::Float(-1.0f, 1.0f); });
+
+        const NeuralNetworkOutput neuralOutput = NeuralNetwork(neuralInput);
+        return neuralOutput.maxIndex();
     }
 };
 

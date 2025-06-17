@@ -148,6 +148,9 @@
     <ClCompile Include="SimpleOCR\DatasetImage.cpp" />
     <ClCompile Include="SimpleOCR\DatasetLoader.cpp" />
     <ClCompile Include="SimpleOCR\EntryPoint.cpp" />
+    <ClCompile Include="SimpleOCR\Matrix.cpp" />
+    <ClCompile Include="SimpleOCR\NeuralNetwork.cpp" />
+    <ClCompile Include="SimpleOCR\NP.cpp" />
     <Content Include="asset\shader\simple_compute.hlsl" />
     <Content Include=".gitignore" />
     <Content Include="asset\gamepad.toml" />
@@ -184,6 +187,9 @@
     <ClInclude Include="SimpleOCR\DatasetImage.h" />
     <ClInclude Include="SimpleOCR\DatasetLoader.h" />
     <ClInclude Include="SimpleOCR\EntryPoint.h" />
+    <ClInclude Include="SimpleOCR\Matrix.h" />
+    <ClInclude Include="SimpleOCR\NeuralNetwork.h" />
+    <ClInclude Include="SimpleOCR\NP.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Tsuyu\external\DirectXTex\DirectXTex\DirectXTex_Desktop_2022.vcxproj">
