@@ -1,12 +1,18 @@
 ﻿#include "pch.h"
 #include "EntryPoint.h"
 
+#include "DatasetImage.h"
+#include "DatasetLoader.h"
 #include "LivePPAddon.h"
 #include "TY/Gpgpu.h"
+#include "TY/Image.h"
 #include "TY/Logger.h"
 #include "TY/System.h"
+#include "TY/Texture.h"
 
 using namespace TY;
+
+using namespace ocr;
 
 namespace
 {
@@ -19,6 +25,10 @@ struct EntryPointImpl
     ReadonlyGpgpuBuffer<uint32_t> m_readonlyData0{};
     ReadonlyGpgpuBuffer<uint32_t> m_readonlyData1{};
     Gpgpu m_gpgpu{};
+
+    Texture m_previewTexture{};
+
+    DatasetImageList m_trainImages{};
 
     EntryPointImpl()
     {
@@ -45,10 +55,26 @@ struct EntryPointImpl
         };
 
         m_gpgpu.compute();
+
+        LoadMnistImages("asset/dataset/train-images.idx3-ubyte", m_trainImages);
+
+        const auto texturePS = PixelShader{ShaderParams::PS("asset/shader/default2d.hlsl")};
+        const auto textureVS = VertexShader{ShaderParams::VS("asset/shader/default2d.hlsl")};
+
+        m_previewTexture = Texture{
+            TextureParams()
+            .setSource(m_trainImages.images[0].imageView(m_trainImages.property))
+            .setPS(texturePS)
+            .setVS(textureVS)
+        };
     }
 
     void Update()
     {
+        {
+            m_previewTexture.drawAt(Vec2{200, 200});
+        }
+
         {
             ImGui::Begin("Compute Shader");
 

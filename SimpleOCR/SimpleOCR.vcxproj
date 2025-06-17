@@ -145,6 +145,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="SimpleOCR\DatasetImage.cpp" />
+    <ClCompile Include="SimpleOCR\DatasetLoader.cpp" />
     <ClCompile Include="SimpleOCR\EntryPoint.cpp" />
     <Content Include="asset\shader\simple_compute.hlsl" />
     <Content Include=".gitignore" />
@@ -179,6 +181,8 @@
     <ClInclude Include="asset\shader\model.hlsli" />
     <ClInclude Include="LivePPAddon.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="SimpleOCR\DatasetImage.h" />
+    <ClInclude Include="SimpleOCR\DatasetLoader.h" />
     <ClInclude Include="SimpleOCR\EntryPoint.h" />
   </ItemGroup>
   <ItemGroup>
@@ -190,6 +194,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="asset\dataset\" />
     <Folder Include="engine\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
