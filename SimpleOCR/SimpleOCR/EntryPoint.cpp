@@ -7,6 +7,7 @@
 #include "TY/Gpgpu.h"
 #include "TY/Image.h"
 #include "TY/Logger.h"
+#include "TY/Math.h"
 #include "TY/System.h"
 #include "TY/Texture.h"
 
@@ -25,6 +26,9 @@ struct EntryPointImpl
     ReadonlyGpgpuBuffer<uint32_t> m_readonlyData0{};
     ReadonlyGpgpuBuffer<uint32_t> m_readonlyData1{};
     Gpgpu m_gpgpu{};
+
+    PixelShader m_texturePS{};
+    VertexShader m_textureVS{};
 
     Texture m_previewTexture{};
 
@@ -58,21 +62,30 @@ struct EntryPointImpl
 
         LoadMnistImages("asset/dataset/train-images.idx3-ubyte", m_trainImages);
 
-        const auto texturePS = PixelShader{ShaderParams::PS("asset/shader/default2d.hlsl")};
-        const auto textureVS = VertexShader{ShaderParams::VS("asset/shader/default2d.hlsl")};
+        m_texturePS = PixelShader{ShaderParams::PS("asset/shader/default2d.hlsl")};
+        m_textureVS = VertexShader{ShaderParams::VS("asset/shader/default2d.hlsl")};
 
-        m_previewTexture = Texture{
-            TextureParams()
-            .setSource(m_trainImages.images[0].imageView(m_trainImages.property))
-            .setPS(texturePS)
-            .setVS(textureVS)
-        };
+        m_previewTexture = makePreviewTexture(0);
     }
 
     void Update()
     {
         {
             m_previewTexture.drawAt(Vec2{200, 200});
+        }
+
+        {
+            ImGui::Begin("Train Images");
+
+            static int s_trainImageIndex{};
+            if (ImGui::InputInt("Index", &s_trainImageIndex))
+            {
+                s_trainImageIndex =
+                    Math::Clamp(s_trainImageIndex, 0, static_cast<int>(m_trainImages.images.size() - 1));
+                m_previewTexture = makePreviewTexture(s_trainImageIndex);
+            }
+
+            ImGui::End();
         }
 
         {
@@ -99,6 +112,17 @@ struct EntryPointImpl
 
             ImGui::End();
         }
+    }
+
+private:
+    Texture makePreviewTexture(int index)
+    {
+        return Texture{
+            TextureParams()
+            .setSource(m_trainImages.images[index].imageView(m_trainImages.property))
+            .setPS(m_texturePS)
+            .setVS(m_textureVS)
+        };
     }
 };
 
