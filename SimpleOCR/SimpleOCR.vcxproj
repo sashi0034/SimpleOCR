@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{91eb6c3a-f7d2-4e2c-a817-d904c6996ca7}</ProjectGuid>
+    <ProjectGuid>{e7686300-b705-41dd-9e3f-444e895fd832}</ProjectGuid>
     <RootNamespace>SimpleOCR</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -93,6 +93,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -102,10 +104,22 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>./;../Tsuyu/external;../Tsuyu/Tsuyu;</AdditionalIncludeDirectories>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <MinimalRebuild>false</MinimalRebuild>
+      <CreateHotpatchableImage>true</CreateHotpatchableImage>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <CreateHotPatchableImage>Enabled</CreateHotPatchableImage>
+      <OptimizeReferences>false</OptimizeReferences>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -116,14 +130,73 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>./;../Tsuyu/external;../Tsuyu/Tsuyu;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <Content Include="asset\shader\simple_compute.hlsl" />
+    <ClCompile Include="Demo\Demo_Gpgpu.cpp" />
+    <ClCompile Include="Demo\Demo_Phong.cpp" />
+    <ClCompile Include="Demo\Demo_PointLight.cpp" />
+    <Content Include=".gitignore" />
+    <Content Include="asset\gamepad.toml" />
+    <Content Include="asset\model\.gitignore" />
+    <Content Include="asset\model\dirty_plane.mtl" />
+    <Content Include="asset\model\dirty_plane.obj" />
+    <Content Include="asset\shader\phong.hlsl" />
+    <Content Include="engine\stub.hlsl" />
+    <Content Include="asset\shader\default2d.hlsl" />
+    <Content Include="asset\shader\lambert.hlsl" />
+    <ClCompile Include="LivePPAddon.cpp" />
+    <ClCompile Include="Demo\Demo_Lambert.cpp" />
+    <ClCompile Include="Demo\Demo_RenderTarget.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <Content Include="asset\image\fairy_1024x1024.png" />
+    <Content Include="asset\image\mii.png" />
+    <Content Include="asset\image\violet_900x1600.png" />
+    <Content Include="asset\model\cinnamon.mtl" />
+    <Content Include="asset\model\cinnamon.obj" />
+    <Content Include="asset\model\cinnamon_face.png" />
+    <Content Include="asset\model\robot_head.mtl" />
+    <Content Include="asset\model\robot_head.obj" />
+    <Content Include="asset\shader\basic_pixel.hlsl" />
+    <Content Include="asset\shader\basic_vertex.hlsl" />
+    <Content Include="asset\shader\model_pixel.hlsl" />
+    <Content Include="asset\shader\model_vertex.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="asset\shader\basic.hlsli" />
+    <ClInclude Include="asset\shader\model.hlsli" />
+    <ClInclude Include="Demo\Demo_Gpgpu.h" />
+    <ClInclude Include="LivePPAddon.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Demo\Demo_Lambert.h" />
+    <ClInclude Include="Demo\Demo_RenderTarget.h" />
+    <ClInclude Include="Demo\Demo_Phong.h" />
+    <ClInclude Include="Demo\Demo_PointLight.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Tsuyu\external\DirectXTex\DirectXTex\DirectXTex_Desktop_2022.vcxproj">
+      <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Tsuyu\Tsuyu\Tsuyu.vcxproj">
+      <Project>{6ec0451c-6adc-497a-b757-f3f886322c53}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
