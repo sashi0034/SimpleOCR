@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "Demo_Gpgpu.h"
+#include "EntryPoint.h"
 
 #include "LivePPAddon.h"
 #include "TY/Gpgpu.h"
@@ -12,7 +12,7 @@ namespace
 {
 }
 
-struct Demo_Gpgpu_Impl
+struct EntryPointImpl
 {
     ComputeShader m_computeShader{};
     WritableGpgpuBuffer<uint32_t> m_buffer{};
@@ -20,7 +20,7 @@ struct Demo_Gpgpu_Impl
     ReadonlyGpgpuBuffer<uint32_t> m_readonlyData1{};
     Gpgpu m_gpgpu{};
 
-    Demo_Gpgpu_Impl()
+    EntryPointImpl()
     {
         m_computeShader = ComputeShader{ShaderParams::CS("asset/shader/simple_compute.hlsl")};
 
@@ -76,9 +76,9 @@ struct Demo_Gpgpu_Impl
     }
 };
 
-void Demo_Gpgpu()
+void ocr::EntryPoint()
 {
-    Demo_Gpgpu_Impl impl{};
+    EntryPointImpl impl{};
 
     while (System::Update())
     {
