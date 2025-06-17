@@ -33,6 +33,7 @@ struct EntryPointImpl
     Texture m_previewTexture{};
 
     DatasetImageList m_trainImages{};
+    Array<uint8_t> m_trainLabels{};
 
     EntryPointImpl()
     {
@@ -62,6 +63,8 @@ struct EntryPointImpl
 
         LoadMnistImages("asset/dataset/train-images.idx3-ubyte", m_trainImages);
 
+        LoadMnistLabels("asset/dataset/train-labels.idx1-ubyte", m_trainLabels);
+
         m_texturePS = PixelShader{ShaderParams::PS("asset/shader/default2d.hlsl")};
         m_textureVS = VertexShader{ShaderParams::VS("asset/shader/default2d.hlsl")};
 
@@ -71,7 +74,7 @@ struct EntryPointImpl
     void Update()
     {
         {
-            m_previewTexture.drawAt(Vec2{200, 200});
+            m_previewTexture.as2D().scaled(4.0f).drawAt(Vec2{200, 200});
         }
 
         {
@@ -84,6 +87,8 @@ struct EntryPointImpl
                     Math::Clamp(s_trainImageIndex, 0, static_cast<int>(m_trainImages.images.size() - 1));
                 m_previewTexture = makePreviewTexture(s_trainImageIndex);
             }
+
+            ImGui::Text("Actual Label: %d", m_trainLabels[s_trainImageIndex]);
 
             ImGui::End();
         }
