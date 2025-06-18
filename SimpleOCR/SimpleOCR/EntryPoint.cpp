@@ -179,11 +179,7 @@ private:
 
     int runNeuralNetwork(int index)
     {
-        const auto x = m_trainImages.images[index].map([](uint8_t pixel)
-        {
-            return static_cast<float>(pixel) / 255.0f;
-        });
-
+        const auto x = makeImageInput(index);
         const NeuralNetworkOutput neuralOutput = NeuralNetwork(x, m_params);
         return neuralOutput.maxIndex();
     }
@@ -231,7 +227,7 @@ private:
         Random::Shuffle(indices);
 
         float previousAverageLoss{};
-        constexpr float lossTermination = 0.005f;
+        constexpr float lossTermination = 0.001f;
         for (int epoch = 0; epoch < maxEpoch; ++epoch)
         {
             LogInfo.writeln(std::format("Epoch: {}/{}", epoch + 1, maxEpoch));
@@ -242,12 +238,9 @@ private:
             const int baseIndex = epoch * batchSize;
             for (int i = 0; i < batchSize; i++)
             {
-                auto x = m_trainImages.images[0].map([](uint8_t pixel)
-                {
-                    return static_cast<float>(pixel) / 255.0f;
-                });
-
                 const int imageIndex = indices[baseIndex + i];
+
+                auto x = makeImageInput(imageIndex);
 
                 const BackPropagationInput bpInput{
                     .x = std::move(x),
@@ -277,15 +270,20 @@ private:
         }
     }
 
+    Array<float> makeImageInput(int i) const
+    {
+        return m_trainImages.images[i].map([](uint8_t pixel)
+        {
+            return static_cast<float>(pixel);
+        });
+    }
+
     void computeAccuracy() const
     {
         int correctCount = 0;
         for (int i = 0; i < m_trainImages.images.size(); ++i)
         {
-            const auto x = m_trainImages.images[i].map([](uint8_t pixel)
-            {
-                return static_cast<float>(pixel) / 255.0f;
-            });
+            const auto x = makeImageInput(i);
 
             const NeuralNetworkOutput neuralOutput = NeuralNetwork(x, m_params);
             if (neuralOutput.maxIndex() == m_trainLabels[i])
