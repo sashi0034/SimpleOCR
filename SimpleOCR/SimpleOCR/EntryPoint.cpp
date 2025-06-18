@@ -113,7 +113,11 @@ struct EntryPointImpl
             if (ImGui::Button("Execute Machine Learning"))
             {
                 machineLearning();
-                LogInfo.writeln("Machine learning completed!");
+            }
+
+            if (ImGui::Button("Compute Accuracy"))
+            {
+                computeAccuracy();
             }
 
             ImGui::End();
@@ -271,6 +275,27 @@ private:
 
             previousAverageLoss = averageLoss;
         }
+    }
+
+    void computeAccuracy() const
+    {
+        int correctCount = 0;
+        for (int i = 0; i < m_trainImages.images.size(); ++i)
+        {
+            const auto x = m_trainImages.images[i].map([](uint8_t pixel)
+            {
+                return static_cast<float>(pixel) / 255.0f;
+            });
+
+            const NeuralNetworkOutput neuralOutput = NeuralNetwork(x, m_params);
+            if (neuralOutput.maxIndex() == m_trainLabels[i])
+            {
+                correctCount++;
+            }
+        }
+
+        const float accuracy = static_cast<float>(correctCount) / m_trainImages.images.size();
+        LogInfo.writeln(std::format("Training completed! Accuracy: {:.2f}", accuracy));
     }
 };
 
