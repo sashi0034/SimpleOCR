@@ -34,9 +34,9 @@ namespace ocr
 {
     BackPropagationOutput BackPropagation(const BackPropagationInput& input)
     {
-        const auto neuralOutput = NeuralNetwork(input.neuralInput);
+        const auto neuralOutput = NeuralNetwork(input.x, input.params);
 
-        const Array<float>& x = input.neuralInput.x;
+        const Array<float>& x = input.x;
 
         const Array<float> trueY = oneHotEncoding(input.trueLabel, neuralOutput.output().size());
 
@@ -59,7 +59,7 @@ namespace ocr
                                 NP::Subtract(Array<float>(neuralOutput.y1.size(), 1.0f), neuralOutput.y1));
 
         const Array<float> da1 = NP::HadamardProduct(
-            NP::VecMat(da2, input.neuralInput.w2.transposed()).data(),
+            NP::VecMat(da2, input.params.w2.transposed()).data(),
             sigmoidGradient
         );
 

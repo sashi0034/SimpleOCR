@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "EntryPoint.h"
 
+#include "BackPropagation.h"
 #include "DatasetImage.h"
 #include "DatasetLoader.h"
 #include "LivePPAddon.h"
@@ -22,6 +23,10 @@ namespace
     constexpr int midNodeCount = 128;
 
     constexpr int labelCount = 10;
+
+    constexpr int batchSize = 100;
+
+    constexpr float learningRate = 0.01;
 }
 
 struct EntryPointImpl
@@ -41,6 +46,8 @@ struct EntryPointImpl
 
     DatasetImageList m_trainImages{};
     Array<uint8_t> m_trainLabels{};
+
+    NeuralNetworkParameters m_params{};
 
     EntryPointImpl()
     {
@@ -75,6 +82,8 @@ struct EntryPointImpl
         m_texturePS = PixelShader{ShaderParams::PS("asset/shader/default2d.hlsl")};
         m_textureVS = VertexShader{ShaderParams::VS("asset/shader/default2d.hlsl")};
 
+        m_params = makeRandomNeuralInput(m_trainImages.images[0].size());
+
         m_trainImageIndex = 0;
         m_previewTexture = makePreviewTexture(m_trainImageIndex);
         m_predictedLabel = runNeuralNetwork(m_trainImageIndex);
@@ -100,6 +109,12 @@ struct EntryPointImpl
             ImGui::Text("Actual Label: %d", m_trainLabels[m_trainImageIndex]);
 
             ImGui::Text("Predicted Label: %d", m_predictedLabel);
+
+            if (ImGui::Button("Execute Machine Learning"))
+            {
+                machineLearning();
+                LogInfo.writeln("Machine learning completed!");
+            }
 
             ImGui::End();
         }
@@ -141,16 +156,12 @@ private:
         };
     }
 
-    int runNeuralNetwork(int index)
+    NeuralNetworkParameters makeRandomNeuralInput(int inputRows) const
     {
-        NeuralNetworkInput neuralInput{};
+        NeuralNetworkParameters neuralInput{};
+        neuralInput = {};
 
-        neuralInput.x = m_trainImages.images[index].map([](uint8_t pixel)
-        {
-            return static_cast<float>(pixel) / 255.0f;
-        });
-
-        neuralInput.w1 = Matrix(neuralInput.x.size(), midNodeCount);
+        neuralInput.w1 = Matrix(inputRows, midNodeCount);
         neuralInput.w1.data() = neuralInput.w1.data().map([](uint8_t) { return Random::Float(-1.0f, 1.0f); });
 
         neuralInput.b1 = Array<float>(midNodeCount).map([](uint8_t) { return Random::Float(-1.0f, 1.0f); });
@@ -159,9 +170,107 @@ private:
         neuralInput.w2.data() = neuralInput.w2.data().map([](uint8_t) { return Random::Float(-1.0f, 1.0f); });
 
         neuralInput.b2 = Array<float>(labelCount).map([](uint8_t) { return Random::Float(-1.0f, 1.0f); });
+        return neuralInput;
+    }
 
-        const NeuralNetworkOutput neuralOutput = NeuralNetwork(neuralInput);
+    int runNeuralNetwork(int index)
+    {
+        const auto x = m_trainImages.images[index].map([](uint8_t pixel)
+        {
+            return static_cast<float>(pixel) / 255.0f;
+        });
+
+        const NeuralNetworkOutput neuralOutput = NeuralNetwork(x, m_params);
         return neuralOutput.maxIndex();
+    }
+
+    void backpropagationApply(NeuralNetworkParameters& params, const BackPropagationOutput& bp)
+    {
+        // Update weights and biases using the gradients from backpropagation
+        for (int i = 0; i < params.w1.rows(); ++i)
+        {
+            for (int j = 0; j < params.w1.cols(); ++j)
+            {
+                params.w1[i][j] -= learningRate * bp.dw1[i][j];
+            }
+        }
+
+        for (int i = 0; i < params.b1.size(); ++i)
+        {
+            params.b1[i] -= learningRate * bp.db1[i];
+        }
+
+        for (int i = 0; i < params.w2.rows(); ++i)
+        {
+            for (int j = 0; j < params.w2.cols(); ++j)
+            {
+                params.w2[i][j] -= learningRate * bp.dw2[i][j];
+            }
+        }
+
+        for (int i = 0; i < params.b2.size(); ++i)
+        {
+            params.b2[i] -= learningRate * bp.db2[i];
+        }
+    }
+
+    void machineLearning()
+    {
+        const int maxEpoch = m_trainImages.images.size() / batchSize;
+
+        Array<int> indices(m_trainImages.images.size());
+        for (int i = 0; i < indices.size(); ++i)
+        {
+            indices[i] = i;
+        }
+
+        Random::Shuffle(indices);
+
+        float previousAverageLoss{};
+        constexpr float lossTermination = 0.005f;
+        for (int epoch = 0; epoch < maxEpoch; ++epoch)
+        {
+            LogInfo.writeln(std::format("Epoch: {}/{}", epoch + 1, maxEpoch));
+
+            // -----------------------------------------------
+            float averageLoss = 0.0f;
+
+            const int baseIndex = epoch * batchSize;
+            for (int i = 0; i < batchSize; i++)
+            {
+                auto x = m_trainImages.images[0].map([](uint8_t pixel)
+                {
+                    return static_cast<float>(pixel) / 255.0f;
+                });
+
+                const int imageIndex = indices[baseIndex + i];
+
+                const BackPropagationInput bpInput{
+                    .x = std::move(x),
+                    .params = m_params,
+                    .trueLabel = m_trainLabels[imageIndex],
+                    .batches = batchSize
+                };
+
+                const BackPropagationOutput bpOutput = BackPropagation(bpInput);
+
+                averageLoss += bpOutput.crossEntropyError;
+
+                backpropagationApply(m_params, bpOutput);
+            }
+
+            averageLoss /= batchSize;
+
+            LogInfo.writeln(std::format("Average Loss: {:.6f}", averageLoss));
+
+            if (Abs(averageLoss - previousAverageLoss) < lossTermination)
+            {
+                LogInfo.writeln("Training terminated early due to low loss.");
+                break;
+            }
+
+            previousAverageLoss = averageLoss;
+        }
     }
 };
 

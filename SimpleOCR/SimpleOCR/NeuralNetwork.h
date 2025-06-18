@@ -4,10 +4,8 @@
 
 namespace ocr
 {
-    struct NeuralNetworkInput
+    struct NeuralNetworkParameters
     {
-        Array<float> x; // [入力ノード数]
-
         Matrix w1; // [入力ノード数][中間ノード数]
 
         Array<float> b1; // [中間ノード数]
@@ -31,5 +29,5 @@ namespace ocr
         int maxIndex() const;
     };
 
-    NeuralNetworkOutput NeuralNetwork(const NeuralNetworkInput& input);
+    NeuralNetworkOutput NeuralNetwork(const Array<float>& x, const NeuralNetworkParameters& params);
 }

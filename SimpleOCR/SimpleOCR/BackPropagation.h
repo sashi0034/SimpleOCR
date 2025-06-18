@@ -6,7 +6,9 @@ namespace ocr
 {
     struct BackPropagationInput
     {
-        NeuralNetworkInput neuralInput;
+        Array<float> x;
+
+        NeuralNetworkParameters params;
 
         int trueLabel;
 
