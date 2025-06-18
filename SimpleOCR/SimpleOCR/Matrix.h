@@ -42,6 +42,8 @@ namespace ocr
             return &m_data[index * m_cols];
         }
 
+        Matrix transposed() const;
+
         static Matrix RowMajor(Array<float> vector);
 
         static Matrix ColumnMajor(Array<float> vector);

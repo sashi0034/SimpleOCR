@@ -3,6 +3,38 @@
 
 namespace ocr
 {
+    Array<float> NP::Subtract(const Array<float>& a, const Array<float>& b)
+    {
+        if (a.size() != b.size())
+        {
+            throw std::invalid_argument("Array sizes do not match for subtraction.");
+        }
+
+        Array<float> result(a.size());
+        for (size_t i = 0; i < a.size(); ++i)
+        {
+            result[i] = a[i] - b[i];
+        }
+
+        return result;
+    }
+
+    Array<float> NP::Divide(const Array<float>& a, float b)
+    {
+        if (b == 0)
+        {
+            throw std::invalid_argument("Division by zero is not allowed.");
+        }
+
+        Array<float> result(a.size());
+        for (size_t i = 0; i < a.size(); ++i)
+        {
+            result[i] = a[i] / b;
+        }
+
+        return result;
+    }
+
     Matrix NP::VecMat(const Array<float>& b, const Matrix& A)
     {
         if (A.rows() != b.size())
@@ -101,5 +133,51 @@ namespace ocr
                 }
             }
         }
+    }
+
+    Matrix NP::OuterProduct(const Array<float>& a, const Array<float>& b)
+    {
+        Matrix result(a.size(), b.size());
+        for (size_t i = 0; i < a.size(); ++i)
+        {
+            for (size_t j = 0; j < b.size(); ++j)
+            {
+                result[i][j] = a[i] * b[j];
+            }
+        }
+
+        return result;
+    }
+
+    float NP::DorProduct(const Array<float>& a, const Array<float>& b)
+    {
+        if (a.size() != b.size())
+        {
+            throw std::invalid_argument("Array sizes do not match for dot product.");
+        }
+
+        float result = 0.0f;
+        for (size_t i = 0; i < a.size(); ++i)
+        {
+            result += a[i] * b[i];
+        }
+
+        return result;
+    }
+
+    Array<float> NP::HadamardProduct(const Array<float>& a, const Array<float>& b)
+    {
+        if (a.size() != b.size())
+        {
+            throw std::invalid_argument("Array sizes do not match for Hadamard product.");
+        }
+
+        Array<float> result(a.size());
+        for (size_t i = 0; i < a.size(); ++i)
+        {
+            result[i] = a[i] * b[i];
+        }
+
+        return result;
     }
 }

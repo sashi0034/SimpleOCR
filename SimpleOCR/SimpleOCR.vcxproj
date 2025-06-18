@@ -145,6 +145,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="SimpleOCR\BackPropagation.cpp" />
     <ClCompile Include="SimpleOCR\DatasetImage.cpp" />
     <ClCompile Include="SimpleOCR\DatasetLoader.cpp" />
     <ClCompile Include="SimpleOCR\EntryPoint.cpp" />
@@ -184,6 +185,7 @@
     <ClInclude Include="asset\shader\model.hlsli" />
     <ClInclude Include="LivePPAddon.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="SimpleOCR\BackPropagation.h" />
     <ClInclude Include="SimpleOCR\DatasetImage.h" />
     <ClInclude Include="SimpleOCR\DatasetLoader.h" />
     <ClInclude Include="SimpleOCR\EntryPoint.h" />

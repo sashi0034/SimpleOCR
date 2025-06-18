@@ -5,7 +5,7 @@
 
 namespace
 {
-    Array<float> activation(const Array<float>& a)
+    Array<float> sigmoid(const Array<float>& a)
     {
         Array<float> y(a.size());
         for (int i = 0; i < a.size(); ++i)
@@ -65,18 +65,22 @@ namespace ocr
     {
         NeuralNetworkOutput output{};
 
+        // x -> [w1 + b1] -> a1 -> sigmoid -> y1 -> [w2 + b2] -> a2 -> softmax -> y2 -> loss
+
         // ----------------------------------------------- 入力層 --> 中間層
 
         Array<float> a1 = input.b1;
         NP::GEMM(input.x, input.w1, a1); // a1 = x * w1 + b1
 
-        output.y1 = activation(a1);
+        // --> sigmoid 活性化関数層: 非線形性を加える
+        output.y1 = sigmoid(a1);
 
         // ----------------------------------------------- 中間層 --> 出力層
 
         Array<float> a2 = input.b2;
         NP::GEMM(output.y1, input.w2, a2); // y2 = y1 * w2 + b2
 
+        // --> softmax 活性化関数層: 出力を確率分布として解釈
         output.y2 = softmax(a2);
 
         return output;

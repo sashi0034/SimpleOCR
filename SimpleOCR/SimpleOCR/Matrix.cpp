@@ -15,6 +15,20 @@ namespace ocr
         m_data.resize(rows * cols);
     }
 
+    Matrix Matrix::transposed() const
+    {
+        Matrix result(m_cols, m_rows);
+        for (int i = 0; i < m_rows; ++i)
+        {
+            for (int j = 0; j < m_cols; ++j)
+            {
+                result[j][i] = m_data[i * m_cols + j];
+            }
+        }
+
+        return result;
+    }
+
     Matrix Matrix::RowMajor(Array<float> vector)
     {
         Matrix result{};
