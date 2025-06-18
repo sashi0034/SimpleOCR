@@ -107,7 +107,6 @@ namespace ocr
 
         for (int j = 0; j < B.cols(); ++j)
         {
-            c[j] = 0;
             for (int i = 0; i < B.rows(); ++i)
             {
                 c[j] += a[i] * B[i][j];
@@ -126,7 +125,6 @@ namespace ocr
         {
             for (int j = 0; j < B.cols(); ++j)
             {
-                C[i][j] = 0;
                 for (int k = 0; k < A.cols(); ++k)
                 {
                     C[i][j] += A[i][k] * B[k][j];

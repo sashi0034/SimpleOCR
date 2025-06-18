@@ -274,7 +274,7 @@ private:
     {
         return m_trainImages.images[i].map([](uint8_t pixel)
         {
-            return static_cast<float>(pixel);
+            return static_cast<float>(pixel) / 255.0f;
         });
     }
 
