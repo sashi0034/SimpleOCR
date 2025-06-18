@@ -27,6 +27,8 @@ namespace
     constexpr int batchSize = 100;
 
     constexpr float learningRate = 0.01;
+
+    constexpr int epochCount = 25;
 }
 
 struct EntryPointImpl
@@ -216,8 +218,6 @@ private:
 
     void machineLearning()
     {
-        const int maxEpoch = m_trainImages.images.size() / batchSize;
-
         Array<int> indices(m_trainImages.images.size());
         for (int i = 0; i < indices.size(); ++i)
         {
@@ -227,36 +227,49 @@ private:
         Random::Shuffle(indices);
 
         float previousAverageLoss{};
-        constexpr float lossTermination = 0.001f;
-        for (int epoch = 0; epoch < maxEpoch; ++epoch)
+        constexpr float lossTermination = 0.01f;
+
+        for (int epoch = 0; epoch < epochCount; ++epoch)
         {
-            LogInfo.writeln(std::format("Epoch: {}/{}", epoch + 1, maxEpoch));
-
-            // -----------------------------------------------
-            float averageLoss = 0.0f;
-
-            const int baseIndex = epoch * batchSize;
-            for (int i = 0; i < batchSize; i++)
+            for (int i = 0; i < indices.size(); ++i)
             {
-                const int imageIndex = indices[baseIndex + i];
-
-                auto x = makeImageInput(imageIndex);
-
-                const BackPropagationInput bpInput{
-                    .x = std::move(x),
-                    .params = m_params,
-                    .trueLabel = m_trainLabels[imageIndex],
-                    .batches = batchSize
-                };
-
-                const BackPropagationOutput bpOutput = BackPropagation(bpInput);
-
-                averageLoss += bpOutput.crossEntropyError;
-
-                backpropagationApply(m_params, bpOutput);
+                indices[i] = i;
             }
 
-            averageLoss /= batchSize;
+            Random::Shuffle(indices);
+
+            // -----------------------------------------------
+            LogInfo.writeln(std::format("Epoch: {}/{}", epoch + 1, epochCount));
+
+            float averageLoss = 0.0f;
+
+            const int batchesPerEpoch = m_trainImages.images.size() / batchSize;
+            for (int batch = 0; batch < batchesPerEpoch; ++batch)
+            {
+                const int baseIndex = batch * batchSize;
+
+                for (int i = 0; i < batchSize; ++i)
+                {
+                    const int imageIndex = indices[baseIndex + i];
+
+                    auto x = makeImageInput(imageIndex);
+
+                    const BackPropagationInput bpInput{
+                        .x = std::move(x),
+                        .params = m_params,
+                        .trueLabel = m_trainLabels[imageIndex],
+                        .batches = batchSize
+                    };
+
+                    const BackPropagationOutput bpOutput = BackPropagation(bpInput);
+
+                    averageLoss += bpOutput.crossEntropyError;
+
+                    backpropagationApply(m_params, bpOutput);
+                }
+            }
+
+            averageLoss /= static_cast<float>(batchesPerEpoch * batchSize);
 
             LogInfo.writeln(std::format("Average Loss: {:.6f}", averageLoss));
 
