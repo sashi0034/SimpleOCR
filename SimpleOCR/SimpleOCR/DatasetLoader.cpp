@@ -21,8 +21,9 @@ namespace
 
 namespace ocr
 {
-    void LoadMnistImages(const std::string& file, DatasetImageList& images)
+    DatasetImageList LoadMnistImages(const std::string& file)
     {
+        DatasetImageList images{};
         std::ifstream ifs(file, std::ios::binary);
         if (!ifs) { throw std::runtime_error("Can't open file!"); }
 
@@ -39,10 +40,13 @@ namespace ocr
         {
             ifs.read(reinterpret_cast<char*>(images.images[i].data()), rows * cols);
         }
+
+        return images;
     }
 
-    void LoadMnistLabels(const std::string& file, Array<uint8_t>& labels)
+    Array<uint8_t> LoadMnistLabels(const std::string& file)
     {
+        Array<uint8_t> labels{};
         std::ifstream ifs(file, std::ios::binary);
         if (!ifs) { throw std::runtime_error("Can't open file!"); }
 
@@ -51,5 +55,6 @@ namespace ocr
 
         labels.resize(num_labels);
         ifs.read(reinterpret_cast<char*>(labels.data()), num_labels);
+        return labels;
     }
 }

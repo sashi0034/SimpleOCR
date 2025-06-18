@@ -28,7 +28,7 @@ namespace
 
     constexpr float learningRate = 0.01;
 
-    constexpr int epochCount = 25;
+    constexpr int epochCount = 10;
 }
 
 struct EntryPointImpl
@@ -48,6 +48,9 @@ struct EntryPointImpl
 
     DatasetImageList m_trainImages{};
     Array<uint8_t> m_trainLabels{};
+
+    DatasetImageList m_testImage{};
+    Array<uint8_t> m_testLabel{};
 
     NeuralNetworkParameters m_params{};
 
@@ -77,9 +80,13 @@ struct EntryPointImpl
 
         m_gpgpu.compute();
 
-        LoadMnistImages("asset/dataset/train-images.idx3-ubyte", m_trainImages);
+        m_trainImages = LoadMnistImages("asset/dataset/train-images.idx3-ubyte");
 
-        LoadMnistLabels("asset/dataset/train-labels.idx1-ubyte", m_trainLabels);
+        m_trainLabels = LoadMnistLabels("asset/dataset/train-labels.idx1-ubyte");
+
+        m_testImage = LoadMnistImages("asset/dataset/t10k-images.idx3-ubyte");
+
+        m_testLabel = LoadMnistLabels("asset/dataset/t10k-labels.idx1-ubyte");
 
         m_texturePS = PixelShader{ShaderParams::PS("asset/shader/default2d.hlsl")};
         m_textureVS = VertexShader{ShaderParams::VS("asset/shader/default2d.hlsl")};
@@ -181,7 +188,7 @@ private:
 
     int runNeuralNetwork(int index)
     {
-        const auto x = makeImageInput(index);
+        const auto x = makeImageInput(m_trainImages.images[index]);
         const NeuralNetworkOutput neuralOutput = NeuralNetwork(x, m_params);
         return neuralOutput.maxIndex();
     }
@@ -252,7 +259,7 @@ private:
                 {
                     const int imageIndex = indices[baseIndex + i];
 
-                    auto x = makeImageInput(imageIndex);
+                    auto x = makeImageInput(m_trainImages.images[imageIndex]);
 
                     const BackPropagationInput bpInput{
                         .x = std::move(x),
@@ -283,9 +290,9 @@ private:
         }
     }
 
-    Array<float> makeImageInput(int i) const
+    Array<float> makeImageInput(const DatasetImage& image) const
     {
-        return m_trainImages.images[i].map([](uint8_t pixel)
+        return image.map([](uint8_t pixel)
         {
             return static_cast<float>(pixel) / 255.0f;
         });
@@ -296,10 +303,10 @@ private:
         int correctCount = 0;
         for (int i = 0; i < m_trainImages.images.size(); ++i)
         {
-            const auto x = makeImageInput(i);
+            const auto x = makeImageInput(m_testImage.images[i]);
 
             const NeuralNetworkOutput neuralOutput = NeuralNetwork(x, m_params);
-            if (neuralOutput.maxIndex() == m_trainLabels[i])
+            if (neuralOutput.maxIndex() == m_testLabel[i])
             {
                 correctCount++;
             }
