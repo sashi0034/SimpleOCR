@@ -28,7 +28,7 @@ namespace
 
     constexpr float learningRate = 0.01;
 
-    constexpr int epochCount = 10;
+    constexpr int epochCount = 5;
 }
 
 struct EntryPointImpl
@@ -301,7 +301,7 @@ private:
     void computeAccuracy() const
     {
         int correctCount = 0;
-        for (int i = 0; i < m_trainImages.images.size(); ++i)
+        for (int i = 0; i < m_testImage.images.size(); ++i)
         {
             const auto x = makeImageInput(m_testImage.images[i]);
 
@@ -312,7 +312,7 @@ private:
             }
         }
 
-        const float accuracy = static_cast<float>(correctCount) / m_trainImages.images.size();
+        const float accuracy = static_cast<float>(correctCount) / m_testImage.images.size();
         LogInfo.writeln(std::format("Training completed! Accuracy: {:.2f}", accuracy));
     }
 };
