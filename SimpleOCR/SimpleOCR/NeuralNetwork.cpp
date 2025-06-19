@@ -90,9 +90,11 @@ namespace
 
         WritableGpgpuBuffer1D<float> y2{};
 
-        ComputeShader csForwardLinear{ShaderParams::CS("asset/shader/forward_linear.hlsl")};
+        ComputeShader csForwardLinear{ShaderParams::CS("asset/cs/forward_linear.hlsl")};
 
         Gpgpu forwardLinear1{};
+
+        Gpgpu forwardLinear2{};
 
         void EnsureInitialized(int x1Size, int y1ize, int y2Size)
         {
@@ -112,10 +114,17 @@ namespace
 
             y2 = WritableGpgpuBuffer1D<float>(y2Size);
 
-            forwardLinear1 = GpgpuParams{}
-                             .setCS(csForwardLinear)
-                             .setWritableBuffer({y1})
-                             .setReadonlyBuffer({x, w1, b1});
+            forwardLinear1 =
+                GpgpuParams{}
+                .setCS(csForwardLinear)
+                .setWritableBuffer({y1})
+                .setReadonlyBuffer({x, w1, b1});
+
+            forwardLinear2 =
+                GpgpuParams{}
+                .setCS(csForwardLinear)
+                .setWritableBuffer({y2})
+                .setReadonlyBuffer({y1.asReadonly(), w2, b2});
 
             initialized = true;
         }
@@ -147,8 +156,10 @@ namespace
 
         // ----------------------------------------------- 中間層 --> 出力層
 
-        Array<float> a2 = params.b2;
-        NP::GEMM(output.y1, params.w2, a2); // y2 = y1 * w2 + b2
+        s_gpu->y1.data() = output.y1; // FIXME
+
+        s_gpu->forwardLinear2.compute(); // a2 = y1 * w2 + b2
+        const Array<float>& a2 = s_gpu->y2.data();
 
         // --> softmax 活性化関数層: 出力を確率分布として解釈
         output.y2 = softmax(a2);

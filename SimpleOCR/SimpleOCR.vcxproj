@@ -145,7 +145,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Content Include="asset\shader\forward_linear.hlsl" />
     <ClCompile Include="SimpleOCR\BackPropagation.cpp" />
     <ClCompile Include="SimpleOCR\DatasetImage.cpp" />
     <ClCompile Include="SimpleOCR\DatasetLoader.cpp" />
@@ -153,6 +152,7 @@
     <ClCompile Include="SimpleOCR\Matrix.cpp" />
     <ClCompile Include="SimpleOCR\NeuralNetwork.cpp" />
     <ClCompile Include="SimpleOCR\NP.cpp" />
+    <Content Include="asset\cs\forward_linear.hlsl" />
     <Content Include="asset\shader\simple_compute.hlsl" />
     <Content Include=".gitignore" />
     <Content Include="asset\gamepad.toml" />

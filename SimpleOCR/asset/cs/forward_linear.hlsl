@@ -8,8 +8,8 @@ RWStructuredBuffer<float> g_y : register(u0);
 
 cbuffer BufferInfo : register(b0)
 {
-    uint3 g_x_size;
-    uint3 g_y_size;
+    uint3 g_x_size; // g_t0_size
+    uint3 g_y_size; // g_u0_size
 }
 
 [numthreads(64, 1, 1)]
