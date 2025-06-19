@@ -34,9 +34,9 @@ namespace
 struct EntryPointImpl
 {
     ComputeShader m_computeShader{};
-    WritableGpgpuBuffer<uint32_t> m_buffer{};
-    ReadonlyGpgpuBuffer<uint32_t> m_readonlyData0{};
-    ReadonlyGpgpuBuffer<uint32_t> m_readonlyData1{};
+    WritableGpgpuBuffer1D<uint32_t> m_buffer{};
+    ReadonlyGpgpuBuffer1D<uint32_t> m_readonlyData0{};
+    ReadonlyGpgpuBuffer1D<uint32_t> m_readonlyData1{};
     Gpgpu m_gpgpu{};
 
     PixelShader m_texturePS{};
@@ -58,14 +58,14 @@ struct EntryPointImpl
     {
         m_computeShader = ComputeShader{ShaderParams::CS("asset/shader/simple_compute.hlsl")};
 
-        m_buffer = WritableGpgpuBuffer<uint32_t>(100);
-        m_readonlyData0 = ReadonlyGpgpuBuffer<uint32_t>(50);
+        m_buffer = WritableGpgpuBuffer1D<uint32_t>(100);
+        m_readonlyData0 = ReadonlyGpgpuBuffer1D<uint32_t>(50);
         for (int i = 0; i < m_readonlyData0.data().size(); ++i)
         {
             m_readonlyData0.data()[i] = i * 10;
         }
 
-        m_readonlyData1 = ReadonlyGpgpuBuffer<uint32_t>(100);
+        m_readonlyData1 = ReadonlyGpgpuBuffer1D<uint32_t>(100);
         for (int i = 0; i < m_readonlyData1.data().size(); ++i)
         {
             m_readonlyData1.data()[i] = -i;
@@ -193,33 +193,63 @@ private:
         return neuralOutput.maxIndex();
     }
 
-    void backpropagationApply(NeuralNetworkParameters& params, const BackPropagationOutput& bp)
+    void acumulateGradients(NeuralNetworkParameters& params, const BackPropagationOutput& bp)
     {
-        // Update weights and biases using the gradients from backpropagation
+        // Accumulate gradients for weights and biases
         for (int i = 0; i < params.w1.rows(); ++i)
         {
             for (int j = 0; j < params.w1.cols(); ++j)
             {
-                params.w1[i][j] -= learningRate * bp.dw1[i][j];
+                params.w1[i][j] += bp.dw1[i][j];
             }
         }
 
         for (int i = 0; i < params.b1.size(); ++i)
         {
-            params.b1[i] -= learningRate * bp.db1[i];
+            params.b1[i] += bp.db1[i];
         }
 
         for (int i = 0; i < params.w2.rows(); ++i)
         {
             for (int j = 0; j < params.w2.cols(); ++j)
             {
-                params.w2[i][j] -= learningRate * bp.dw2[i][j];
+                params.w2[i][j] += bp.dw2[i][j];
             }
         }
 
         for (int i = 0; i < params.b2.size(); ++i)
         {
-            params.b2[i] -= learningRate * bp.db2[i];
+            params.b2[i] += bp.db2[i];
+        }
+    }
+
+    void backpropagationApply(NeuralNetworkParameters& params, const NeuralNetworkParameters& gradient)
+    {
+        // Update weights and biases using the gradients from backpropagation
+        for (int i = 0; i < params.w1.rows(); ++i)
+        {
+            for (int j = 0; j < params.w1.cols(); ++j)
+            {
+                params.w1[i][j] -= learningRate * gradient.w1[i][j];
+            }
+        }
+
+        for (int i = 0; i < params.b1.size(); ++i)
+        {
+            params.b1[i] -= learningRate * gradient.b1[i];
+        }
+
+        for (int i = 0; i < params.w2.rows(); ++i)
+        {
+            for (int j = 0; j < params.w2.cols(); ++j)
+            {
+                params.w2[i][j] -= learningRate * gradient.w2[i][j];
+            }
+        }
+
+        for (int i = 0; i < params.b2.size(); ++i)
+        {
+            params.b2[i] -= learningRate * gradient.b2[i];
         }
     }
 
@@ -255,6 +285,12 @@ private:
             {
                 const int baseIndex = batch * batchSize;
 
+                NeuralNetworkParameters accGradient{};
+                accGradient.w1 = Matrix(m_params.w1.rows(), m_params.w1.cols());
+                accGradient.b1 = Array<float>(m_params.b1.size());
+                accGradient.w2 = Matrix(m_params.w2.rows(), m_params.w2.cols());
+                accGradient.b2 = Array<float>(m_params.b2.size());
+
                 for (int i = 0; i < batchSize; ++i)
                 {
                     const int imageIndex = indices[baseIndex + i];
@@ -272,8 +308,10 @@ private:
 
                     averageLoss += bpOutput.crossEntropyError;
 
-                    backpropagationApply(m_params, bpOutput);
+                    acumulateGradients(accGradient, bpOutput);
                 }
+
+                backpropagationApply(m_params, accGradient);
             }
 
             averageLoss /= static_cast<float>(batchesPerEpoch * batchSize);
