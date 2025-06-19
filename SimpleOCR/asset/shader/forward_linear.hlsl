@@ -20,7 +20,7 @@ void CS(uint3 DTid : SV_DispatchThreadID)
     float sum = 0.0f;
     for (uint i = 0; i < g_x_size.x; ++i)
     {
-        sum += g_x[i] * g_w[DTid.x * g_x_size.x + i];
+        sum += g_x[i] * g_w[i * g_y_size.x + DTid.x];
     }
 
     g_y[DTid.x] = sum + g_b[DTid.x];

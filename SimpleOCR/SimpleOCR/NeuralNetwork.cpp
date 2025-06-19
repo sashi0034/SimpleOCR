@@ -140,7 +140,7 @@ namespace
         // ----------------------------------------------- 入力層 --> 中間層
 
         s_gpu->forwardLinear1.compute(); // a1 = x * w1 + b1
-        const Array<float> a1 = s_gpu->y1.data();
+        const Array<float>& a1 = s_gpu->y1.data();
 
         // --> sigmoid 活性化関数層: 非線形性を加える
         output.y1 = sigmoid(a1);
