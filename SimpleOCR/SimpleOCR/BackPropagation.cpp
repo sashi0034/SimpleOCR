@@ -2,6 +2,7 @@
 #include "BackPropagation.h"
 
 #include "NP.h"
+#include "TY/InlineComponent.h"
 
 using namespace ocr;
 
@@ -66,6 +67,8 @@ namespace ocr
         output.dw1 = NP::OuterProduct(x, da1);
 
         output.db1 = da1;
+
+        // -----------------------------------------------
 
         output.crossEntropyError = crossEntropyError(neuralOutput.output(), trueY);
 
