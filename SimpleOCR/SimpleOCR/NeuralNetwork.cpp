@@ -73,6 +73,8 @@ namespace
         return output;
     }
 
+    // -----------------------------------------------
+
     struct GpuNeuralNetwork : IInlineComponent
     {
         bool initialized{};
@@ -100,17 +102,12 @@ namespace
             if (initialized) return;
 
             x = ReadonlyGpgpuBuffer1D<float>(x1Size);
-
             w1 = ReadonlyGpgpuBuffer2D<float>(x1Size, y1ize);
-
             b1 = ReadonlyGpgpuBuffer1D<float>(y1ize);
-
             w2 = ReadonlyGpgpuBuffer2D<float>(y1ize, y2Size);
-
             b2 = ReadonlyGpgpuBuffer1D<float>(y2Size);
 
             y1 = WritableGpgpuBuffer1D<float>(y1ize);
-
             y2 = WritableGpgpuBuffer1D<float>(y2Size);
 
             forwardLinear1 =
@@ -161,15 +158,20 @@ namespace
 
         // x -> [w1 + b1] -> a1 -> sigmoid -> y1 -> [w2 + b2] -> a2 -> softmax -> y2 -> loss
 
-        // ----------------------------------------------- 入力層 --> 中間層
-
+#if 0
         s_gpu->forwardLinear1.compute(); // a1 = x * w1 + b1
         s_gpu->sigmoid.compute();
 
-        // ----------------------------------------------- 中間層 --> 出力層
-
         s_gpu->forwardLinear2.compute(); // a2 = y1 * w2 + b2
         s_gpu->softmax.compute();
+#else // Optimize the above
+        Gpgpu::SequenceCompute({
+            s_gpu->forwardLinear1,
+            s_gpu->sigmoid,
+            s_gpu->forwardLinear2,
+            s_gpu->softmax
+        });
+#endif
 
         output.y1 = s_gpu->y1.data();
         output.y2 = s_gpu->y2.data();
