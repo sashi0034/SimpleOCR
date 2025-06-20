@@ -123,6 +123,8 @@ namespace
                 .setReadonlyBuffer({x, da1.asReadonly()})
                 .setWritableBuffer({dw1})
             };
+
+            initialized = true;
         }
     };
 
