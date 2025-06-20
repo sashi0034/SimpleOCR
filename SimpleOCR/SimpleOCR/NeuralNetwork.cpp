@@ -159,7 +159,7 @@ namespace
 
         s_gpu->forwardLinear2.compute(); // a2 = y1 * w2 + b2
         s_gpu->softmax.compute();
-#else // Optimize the above
+#else // Optimize the above code by combining the compute calls
         Gpgpu::SequenceCompute({
             s_gpu->forwardLinear1,
             s_gpu->sigmoid,
