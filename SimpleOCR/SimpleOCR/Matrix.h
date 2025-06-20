@@ -22,7 +22,7 @@ namespace ocr
             return m_cols;
         }
 
-        Size size2D() const
+        Size rowsCols() const
         {
             return Size{m_rows, m_cols};
         }
