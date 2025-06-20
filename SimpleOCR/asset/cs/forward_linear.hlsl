@@ -6,10 +6,16 @@ StructuredBuffer<float> g_b : register(t2);
 
 RWStructuredBuffer<float> g_y : register(u0);
 
-cbuffer BufferInfo : register(b0)
+cbuffer ReadonlyBufferSizes : register(b0)
 {
-    uint3 g_x_size; // g_t0_size
-    uint3 g_y_size; // g_u0_size
+    uint3 g_x_size;
+    uint3 g_w_size;
+    uint3 g_b_size;
+}
+
+cbuffer WritableBufferSizes : register(b1)
+{
+    uint3 g_y_size;
 }
 
 [numthreads(64, 1, 1)]
