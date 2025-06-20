@@ -154,11 +154,11 @@ namespace
         const auto scopedAssigns = ScopedDeferStack().push(
             s_gpuBP->y1.scopedReadonly(neuralOutput.y1),
             s_gpuBP->da2.scopedReadonly(da2),
-            s_gpuBP->dw2.scopedWritable(output.dw2.data(), {output.dw2.rowsCols(), 1}),
+            s_gpuBP->dw2.scopedWritable(output.dw2.data(), {output.dw2.colsRows(), 1}),
             s_gpuBP->db2.scopedWritable(output.db2),
             s_gpuBP->x.scopedReadonly(x),
-            s_gpuBP->w2.scopedReadonly(input.params.w2.data(), {input.params.w2.rowsCols(), 1}),
-            s_gpuBP->dw1.scopedWritable(output.dw1.data(), {output.dw1.rowsCols(), 1}),
+            s_gpuBP->w2.scopedReadonly(input.params.w2.data(), {input.params.w2.colsRows(), 1}),
+            s_gpuBP->dw1.scopedWritable(output.dw1.data(), {output.dw1.colsRows(), 1}),
             s_gpuBP->db1.scopedWritable(output.db1)
         );
 
@@ -170,7 +170,7 @@ namespace
 
         output.crossEntropyError = crossEntropyError(neuralOutput.output(), trueY);
 
-#if 1 // test
+#if 0 // test
         const auto cpu = cpuBackPropagation(input);
         const bool ok_dw2 = output.dw2.data().sequenceAlmostEquals(cpu.dw2.data());
         const bool ok_db2 = output.db2.sequenceAlmostEquals(cpu.db2);

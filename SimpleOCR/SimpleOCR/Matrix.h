@@ -22,9 +22,9 @@ namespace ocr
             return m_cols;
         }
 
-        Size rowsCols() const
+        Size colsRows() const
         {
-            return Size{m_rows, m_cols};
+            return Size{m_cols, m_rows};
         }
 
         const Array<float>& data() const
