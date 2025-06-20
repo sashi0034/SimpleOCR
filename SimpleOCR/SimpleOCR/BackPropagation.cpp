@@ -2,7 +2,12 @@
 #include "BackPropagation.h"
 
 #include "NP.h"
+#include "TY/Gpgpu.h"
+#include "TY/GpgpuBuffer.h"
 #include "TY/InlineComponent.h"
+#include "TY/Logger.h"
+#include "TY/ScopedDeferStack.h"
+#include "TY/Shader.h"
 
 using namespace ocr;
 
@@ -38,8 +43,6 @@ namespace
         const Array<float>& x = input.x;
 
         const Array<float> trueY = oneHotEncoding(input.trueLabel, neuralOutput.output().size());
-
-        output = {};
 
         // -----------------------------------------------
 
@@ -78,9 +81,48 @@ namespace
     {
         bool initialized{};
 
+        ReadonlyGpgpuBufferView<float> y1{};
+        ReadonlyGpgpuBufferView<float> da2{};
+        WritableGpgpuBufferView<float> dw2{};
+        WritableGpgpuBufferView<float> db2{};
+
+        ReadonlyGpgpuBufferView<float> x{};
+        ReadonlyGpgpuBufferView<float> w2{};
+        WritableGpgpuBuffer1D<float> da1{};
+        WritableGpgpuBufferView<float> dw1{};
+        WritableGpgpuBufferView<float> db1{};
+
+        ComputeShader csOuterProduct{ShaderParams::CS("asset/cs/outer_product.hlsl")};
+        ComputeShader csSigmoidBackward{ShaderParams::CS("asset/cs/sigmoid_backward.hlsl")};
+
+        Gpgpu outerProduct2{};
+        Gpgpu sigmoidBackward{};
+        Gpgpu outerProduct1{};
+
         void EnsureInitialized()
         {
             if (initialized) return;
+
+            outerProduct2 = Gpgpu{
+                GpgpuParams{}
+                .setCS(csOuterProduct)
+                .setReadonlyBuffer({y1, da2})
+                .setWritableBuffer({dw2})
+            };
+
+            sigmoidBackward = Gpgpu{
+                GpgpuParams{}
+                .setCS(csSigmoidBackward)
+                .setReadonlyBuffer({y1, w2, da2})
+                .setWritableBuffer({da1, db1})
+            };
+
+            outerProduct1 = Gpgpu{
+                GpgpuParams{}
+                .setCS(csOuterProduct)
+                .setReadonlyBuffer({x, da1.asReadonly()})
+                .setWritableBuffer({dw1})
+            };
         }
     };
 
@@ -91,7 +133,52 @@ namespace
         s_gpuBP->EnsureInitialized();
 
         BackPropagationOutput output{};
+        const auto neuralOutput = NeuralNetwork(input.x, input.params);
 
+        const Array<float>& x = input.x;
+
+        const Array<float> trueY = oneHotEncoding(input.trueLabel, neuralOutput.output().size());
+
+        // <-- softmax 逆伝搬 (最初の小規模な部分は CPU で計算)
+        const Array<float> da2 = NP::Divide(NP::Subtract(neuralOutput.y2, trueY), input.batches);
+        output.db2 = da2;
+
+        output.dw2 = Matrix(neuralOutput.y1.size(), da2.size());
+        output.db1 = Array<float>(neuralOutput.y1.size());
+        output.dw1 = Matrix(x.size(), neuralOutput.y1.size());
+
+        s_gpuBP->da1.resize(neuralOutput.y1.size());
+
+        const auto scopedAssigns = ScopedDeferStack().push(
+            s_gpuBP->y1.scopedReadonly(neuralOutput.y1),
+            s_gpuBP->da2.scopedReadonly(da2),
+            s_gpuBP->dw2.scopedWritable(output.dw2.data(), {output.dw2.size2D(), 1}),
+            s_gpuBP->db2.scopedWritable(output.db2),
+            s_gpuBP->x.scopedReadonly(x),
+            s_gpuBP->w2.scopedReadonly(input.params.w2.data(), {input.params.w2.size2D(), 1}),
+            s_gpuBP->dw1.scopedWritable(output.dw1.data(), {output.dw1.size2D(), 1}),
+            s_gpuBP->db1.scopedWritable(output.db1)
+        );
+
+        Gpgpu::SequenceCompute({
+            s_gpuBP->outerProduct2,
+            s_gpuBP->sigmoidBackward,
+            s_gpuBP->outerProduct1
+        });
+
+        output.crossEntropyError = crossEntropyError(neuralOutput.output(), trueY);
+
+#if 1 // test
+        const auto cpu = cpuBackPropagation(input);
+        if (output.dw1.data().sequenceAlmostEquals(cpu.dw1.data()))
+        {
+            LogInfo.writeln("GpuBackPropagation: Test passed.");
+        }
+        else
+        {
+            LogError.writeln("GpuBackPropagation: Test failed.");
+        }
+#endif
         return output;
     }
 }
@@ -100,6 +187,6 @@ namespace ocr
 {
     BackPropagationOutput BackPropagation(const BackPropagationInput& input)
     {
-        return cpuBackPropagation(input);
+        return gpuBackPropagation(input);
     }
 }

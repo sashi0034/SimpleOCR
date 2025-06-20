@@ -22,6 +22,11 @@ namespace ocr
             return m_cols;
         }
 
+        Size size2D() const
+        {
+            return Size{m_rows, m_cols};
+        }
+
         const Array<float>& data() const
         {
             return m_data;
