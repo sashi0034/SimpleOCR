@@ -146,6 +146,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <Content Include="asset\cs\sigmoid.hlsl" />
+    <Content Include="asset\cs\softmax.hlsl" />
     <ClCompile Include="SimpleOCR\BackPropagation.cpp" />
     <ClCompile Include="SimpleOCR\DatasetImage.cpp" />
     <ClCompile Include="SimpleOCR\DatasetLoader.cpp" />

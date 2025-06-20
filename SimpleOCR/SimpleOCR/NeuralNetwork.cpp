@@ -5,6 +5,7 @@
 #include "TY/Gpgpu.h"
 #include "TY/GpgpuBuffer1D.h"
 #include "TY/InlineComponent.h"
+#include "TY/Logger.h"
 #include "TY/Shader.h"
 
 using namespace ocr;
@@ -77,28 +78,22 @@ namespace
         bool initialized{};
 
         ReadonlyGpgpuBuffer1D<float> x{};
-
         ReadonlyGpgpuBuffer2D<float> w1{};
-
         ReadonlyGpgpuBuffer1D<float> b1{};
-
         ReadonlyGpgpuBuffer2D<float> w2{};
-
         ReadonlyGpgpuBuffer1D<float> b2{};
 
         WritableGpgpuBuffer1D<float> y1{};
-
         WritableGpgpuBuffer1D<float> y2{};
 
         ComputeShader csForwardLinear{ShaderParams::CS("asset/cs/forward_linear.hlsl")};
-
         ComputeShader csSigmoid{ShaderParams::CS("asset/cs/sigmoid.hlsl")};
+        ComputeShader csSoftmax{ShaderParams::CS("asset/cs/softmax.hlsl")};
 
         Gpgpu forwardLinear1{};
-
         Gpgpu sigmoid{};
-
         Gpgpu forwardLinear2{};
+        Gpgpu softmax{};
 
         void EnsureInitialized(int x1Size, int y1ize, int y2Size)
         {
@@ -135,6 +130,17 @@ namespace
                 .setReadonlyBuffer({y1.asReadonly(), w2, b2})
                 .setWritableBuffer({y2});
 
+            softmax =
+                GpgpuParams{}
+                .setCS(csSoftmax)
+                .setWritableBuffer({y2});
+
+            constexpr int softmaxCapacity = 64;
+            if (y2Size >= softmaxCapacity)
+            {
+                LogError(std::format("GpuNeuralNetwork: y exceeds softmax capacity of {}.", softmaxCapacity));
+            }
+
             initialized = true;
         }
     };
@@ -160,16 +166,25 @@ namespace
         s_gpu->forwardLinear1.compute(); // a1 = x * w1 + b1
         s_gpu->sigmoid.compute();
 
-        // --> sigmoid 活性化関数層: 非線形性を加える
-        output.y1 = s_gpu->y1.data();
-
         // ----------------------------------------------- 中間層 --> 出力層
 
         s_gpu->forwardLinear2.compute(); // a2 = y1 * w2 + b2
-        const Array<float>& a2 = s_gpu->y2.data();
+        s_gpu->softmax.compute();
 
-        // --> softmax 活性化関数層: 出力を確率分布として解釈
-        output.y2 = softmax(a2);
+        output.y1 = s_gpu->y1.data();
+        output.y2 = s_gpu->y2.data();
+
+#if 0 // test
+        const auto cpu = cpuNeuralNetwork(x, params);
+        if (output.y2.sequenceAlmostEquals(cpu.y2))
+        {
+            LogInfo.writeln("GpuNeuralNetwork: Output matches CPU implementation.");
+        }
+        else
+        {
+            LogError.writeln("GpuNeuralNetwork: Output does not match CPU implementation.");
+        }
+#endif
 
         return output;
     }
