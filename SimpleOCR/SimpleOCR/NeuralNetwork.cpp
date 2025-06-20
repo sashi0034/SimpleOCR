@@ -3,7 +3,7 @@
 
 #include "NP.h"
 #include "TY/Gpgpu.h"
-#include "TY/GpgpuBuffer1D.h"
+#include "TY/GpgpuBuffer.h"
 #include "TY/InlineComponent.h"
 #include "TY/Logger.h"
 #include "TY/Shader.h"
@@ -176,7 +176,7 @@ namespace
         output.y1 = s_gpu->y1.data();
         output.y2 = s_gpu->y2.data();
 
-#if 0 // test
+#if 1 // test
         const auto cpu = cpuNeuralNetwork(x, params);
         if (output.y2.sequenceAlmostEquals(cpu.y2))
         {

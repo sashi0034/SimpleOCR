@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "TY/Array.h"
-#include "TY/Value2D.h"
+#include "TY/Vector2D.h"
 
 using namespace TY;
 
