@@ -128,11 +128,11 @@ namespace
         }
     };
 
-    InlineComponent<GpuNeuralNetwork> s_gpu{};
+    InlineComponent<GpuNeuralNetwork> s_gpuNN{};
 
     NeuralNetworkOutput gpuNeuralNetwork(const Array<float>& x, const NeuralNetworkParameters& params)
     {
-        s_gpu->EnsureInitialized();
+        s_gpuNN->EnsureInitialized();
 
         NeuralNetworkOutput output{};
         output.y1.resize(params.w1.cols());
@@ -145,13 +145,13 @@ namespace
         }
 
         const auto scopedAssigns = ScopedDeferStack().push(
-            s_gpu->x.scopedReadonly(x),
-            s_gpu->w1.scopedReadonly(params.w1.data()),
-            s_gpu->b1.scopedReadonly(params.b1),
-            s_gpu->w2.scopedReadonly(params.w2.data()),
-            s_gpu->b2.scopedReadonly(params.b2),
-            s_gpu->y1.scopedWritable(output.y1),
-            s_gpu->y2.scopedWritable(output.y2)
+            s_gpuNN->x.scopedReadonly(x),
+            s_gpuNN->w1.scopedReadonly(params.w1.data()),
+            s_gpuNN->b1.scopedReadonly(params.b1),
+            s_gpuNN->w2.scopedReadonly(params.w2.data()),
+            s_gpuNN->b2.scopedReadonly(params.b2),
+            s_gpuNN->y1.scopedWritable(output.y1),
+            s_gpuNN->y2.scopedWritable(output.y2)
         );
 #if 0
         s_gpu->forwardLinear1.compute(); // a1 = x * w1 + b1
@@ -161,10 +161,10 @@ namespace
         s_gpu->softmax.compute();
 #else // Optimize the above code by combining the compute calls
         Gpgpu::SequenceCompute({
-            s_gpu->forwardLinear1,
-            s_gpu->sigmoid,
-            s_gpu->forwardLinear2,
-            s_gpu->softmax
+            s_gpuNN->forwardLinear1,
+            s_gpuNN->sigmoid,
+            s_gpuNN->forwardLinear2,
+            s_gpuNN->softmax
         });
 #endif
 

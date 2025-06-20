@@ -29,19 +29,17 @@ namespace
 
         return error;
     }
-}
 
-namespace ocr
-{
-    BackPropagationOutput BackPropagation(const BackPropagationInput& input)
+    BackPropagationOutput cpuBackPropagation(const BackPropagationInput& input)
     {
+        BackPropagationOutput output{};
         const auto neuralOutput = NeuralNetwork(input.x, input.params);
 
         const Array<float>& x = input.x;
 
         const Array<float> trueY = oneHotEncoding(input.trueLabel, neuralOutput.output().size());
 
-        BackPropagationOutput output{};
+        output = {};
 
         // -----------------------------------------------
 
@@ -71,7 +69,37 @@ namespace ocr
         // -----------------------------------------------
 
         output.crossEntropyError = crossEntropyError(neuralOutput.output(), trueY);
+        return output;
+    }
+
+    // -----------------------------------------------
+
+    struct GpuBackPropagation : IInlineComponent
+    {
+        bool initialized{};
+
+        void EnsureInitialized()
+        {
+            if (initialized) return;
+        }
+    };
+
+    InlineComponent<GpuBackPropagation> s_gpuBP{};
+
+    BackPropagationOutput gpuBackPropagation(const BackPropagationInput& input)
+    {
+        s_gpuBP->EnsureInitialized();
+
+        BackPropagationOutput output{};
 
         return output;
+    }
+}
+
+namespace ocr
+{
+    BackPropagationOutput BackPropagation(const BackPropagationInput& input)
+    {
+        return cpuBackPropagation(input);
     }
 }
