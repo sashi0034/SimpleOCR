@@ -1,7 +1,5 @@
 StructuredBuffer<float> g_x : register(t0);
-
 StructuredBuffer<float> g_w : register(t1);
-
 StructuredBuffer<float> g_b : register(t2);
 
 RWStructuredBuffer<float> g_y : register(u0);

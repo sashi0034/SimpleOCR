@@ -92,7 +92,11 @@ namespace
 
         ComputeShader csForwardLinear{ShaderParams::CS("asset/cs/forward_linear.hlsl")};
 
+        ComputeShader csSigmoid{ShaderParams::CS("asset/cs/sigmoid.hlsl")};
+
         Gpgpu forwardLinear1{};
+
+        Gpgpu sigmoid{};
 
         Gpgpu forwardLinear2{};
 
@@ -117,14 +121,19 @@ namespace
             forwardLinear1 =
                 GpgpuParams{}
                 .setCS(csForwardLinear)
-                .setWritableBuffer({y1})
-                .setReadonlyBuffer({x, w1, b1});
+                .setReadonlyBuffer({x, w1, b1})
+                .setWritableBuffer({y1});
+
+            sigmoid =
+                GpgpuParams{}
+                .setCS(csSigmoid)
+                .setWritableBuffer({y1});
 
             forwardLinear2 =
                 GpgpuParams{}
                 .setCS(csForwardLinear)
-                .setWritableBuffer({y2})
-                .setReadonlyBuffer({y1.asReadonly(), w2, b2});
+                .setReadonlyBuffer({y1.asReadonly(), w2, b2})
+                .setWritableBuffer({y2});
 
             initialized = true;
         }
@@ -149,14 +158,12 @@ namespace
         // ----------------------------------------------- 入力層 --> 中間層
 
         s_gpu->forwardLinear1.compute(); // a1 = x * w1 + b1
-        const Array<float>& a1 = s_gpu->y1.data();
+        s_gpu->sigmoid.compute();
 
         // --> sigmoid 活性化関数層: 非線形性を加える
-        output.y1 = sigmoid(a1);
+        output.y1 = s_gpu->y1.data();
 
         // ----------------------------------------------- 中間層 --> 出力層
-
-        s_gpu->y1.data() = output.y1; // FIXME
 
         s_gpu->forwardLinear2.compute(); // a2 = y1 * w2 + b2
         const Array<float>& a2 = s_gpu->y2.data();
