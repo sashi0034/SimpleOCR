@@ -6,6 +6,7 @@
 #include "TY/GpgpuBuffer.h"
 #include "TY/InlineComponent.h"
 #include "TY/Logger.h"
+#include "TY/ScopedDeferStack.h"
 #include "TY/Shader.h"
 
 using namespace ocr;
@@ -79,14 +80,14 @@ namespace
     {
         bool initialized{};
 
-        ReadonlyGpgpuBuffer1D<float> x{};
-        ReadonlyGpgpuBuffer2D<float> w1{};
-        ReadonlyGpgpuBuffer1D<float> b1{};
-        ReadonlyGpgpuBuffer2D<float> w2{};
-        ReadonlyGpgpuBuffer1D<float> b2{};
+        ReadonlyGpgpuBufferView<float> x{};
+        ReadonlyGpgpuBufferView<float> w1{};
+        ReadonlyGpgpuBufferView<float> b1{};
+        ReadonlyGpgpuBufferView<float> w2{};
+        ReadonlyGpgpuBufferView<float> b2{};
 
-        WritableGpgpuBuffer1D<float> y1{};
-        WritableGpgpuBuffer1D<float> y2{};
+        WritableGpgpuBufferView<float> y1{};
+        WritableGpgpuBufferView<float> y2{};
 
         ComputeShader csForwardLinear{ShaderParams::CS("asset/cs/forward_linear.hlsl")};
         ComputeShader csSigmoid{ShaderParams::CS("asset/cs/sigmoid.hlsl")};
@@ -97,18 +98,9 @@ namespace
         Gpgpu forwardLinear2{};
         Gpgpu softmax{};
 
-        void EnsureInitialized(int x1Size, int y1ize, int y2Size)
+        void EnsureInitialized()
         {
             if (initialized) return;
-
-            x = ReadonlyGpgpuBuffer1D<float>(x1Size);
-            w1 = ReadonlyGpgpuBuffer2D<float>(x1Size, y1ize);
-            b1 = ReadonlyGpgpuBuffer1D<float>(y1ize);
-            w2 = ReadonlyGpgpuBuffer2D<float>(y1ize, y2Size);
-            b2 = ReadonlyGpgpuBuffer1D<float>(y2Size);
-
-            y1 = WritableGpgpuBuffer1D<float>(y1ize);
-            y2 = WritableGpgpuBuffer1D<float>(y2Size);
 
             forwardLinear1 =
                 GpgpuParams{}
@@ -132,12 +124,6 @@ namespace
                 .setCS(csSoftmax)
                 .setWritableBuffer({y2});
 
-            constexpr int softmaxCapacity = 64;
-            if (y2Size >= softmaxCapacity)
-            {
-                LogError(std::format("GpuNeuralNetwork: y exceeds softmax capacity of {}.", softmaxCapacity));
-            }
-
             initialized = true;
         }
     };
@@ -146,18 +132,27 @@ namespace
 
     NeuralNetworkOutput gpuNeuralNetwork(const Array<float>& x, const NeuralNetworkParameters& params)
     {
-        s_gpu->EnsureInitialized(x.size(), params.w1.cols(), params.w2.cols());
-
-        s_gpu->x.data() = x;
-        s_gpu->w1.data() = params.w1.data();
-        s_gpu->b1.data() = params.b1;
-        s_gpu->w2.data() = params.w2.data();
-        s_gpu->b2.data() = params.b2;
+        s_gpu->EnsureInitialized();
 
         NeuralNetworkOutput output{};
+        output.y1.resize(params.w1.cols());
+        output.y2.resize(params.w2.cols());
 
-        // x -> [w1 + b1] -> a1 -> sigmoid -> y1 -> [w2 + b2] -> a2 -> softmax -> y2 -> loss
+        constexpr int softmaxCapacity = 64;
+        if (output.y2.size() >= softmaxCapacity)
+        {
+            LogError(std::format("GpuNeuralNetwork: y exceeds softmax capacity of {}.", softmaxCapacity));
+        }
 
+        const auto scopedAssigns = ScopedDeferStack().push(
+            s_gpu->x.scopedReadonly(x),
+            s_gpu->w1.scopedReadonly(params.w1.data()),
+            s_gpu->b1.scopedReadonly(params.b1),
+            s_gpu->w2.scopedReadonly(params.w2.data()),
+            s_gpu->b2.scopedReadonly(params.b2),
+            s_gpu->y1.scopedWritable(output.y1),
+            s_gpu->y2.scopedWritable(output.y2)
+        );
 #if 0
         s_gpu->forwardLinear1.compute(); // a1 = x * w1 + b1
         s_gpu->sigmoid.compute();
@@ -173,18 +168,15 @@ namespace
         });
 #endif
 
-        output.y1 = s_gpu->y1.data();
-        output.y2 = s_gpu->y2.data();
-
 #if 1 // test
         const auto cpu = cpuNeuralNetwork(x, params);
         if (output.y2.sequenceAlmostEquals(cpu.y2))
         {
-            LogInfo.writeln("GpuNeuralNetwork: Output matches CPU implementation.");
+            LogInfo.writeln("GpuNeuralNetwork: Test passed.");
         }
         else
         {
-            LogError.writeln("GpuNeuralNetwork: Output does not match CPU implementation.");
+            LogError.writeln("GpuNeuralNetwork: Test failed.");
         }
 #endif
 
