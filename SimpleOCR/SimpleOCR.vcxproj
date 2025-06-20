@@ -194,6 +194,7 @@
     <ClInclude Include="SimpleOCR\DatasetImage.h" />
     <ClInclude Include="SimpleOCR\DatasetLoader.h" />
     <ClInclude Include="SimpleOCR\EntryPoint.h" />
+    <ClInclude Include="SimpleOCR\ApplicationSettings.h" />
     <ClInclude Include="SimpleOCR\Matrix.h" />
     <ClInclude Include="SimpleOCR\NeuralNetwork.h" />
     <ClInclude Include="SimpleOCR\NP.h" />

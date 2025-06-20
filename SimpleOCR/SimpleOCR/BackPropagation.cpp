@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "BackPropagation.h"
 
+#include "ApplicationSettings.h"
 #include "NP.h"
 #include "TY/Gpgpu.h"
 #include "TY/GpgpuBuffer.h"
@@ -193,6 +194,6 @@ namespace ocr
 {
     BackPropagationOutput BackPropagation(const BackPropagationInput& input)
     {
-        return gpuBackPropagation(input);
+        return g_applicationSettings.useGpu ? gpuBackPropagation(input) : cpuBackPropagation(input);
     }
 }

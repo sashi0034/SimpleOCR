@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "NeuralNetwork.h"
 
+#include "ApplicationSettings.h"
 #include "NP.h"
 #include "TY/Gpgpu.h"
 #include "TY/GpgpuBuffer.h"
@@ -168,7 +169,7 @@ namespace
         });
 #endif
 
-#if 1 // test
+#if 0 // test
         const auto cpu = cpuNeuralNetwork(x, params);
         if (output.y2.sequenceAlmostEquals(cpu.y2))
         {
@@ -205,6 +206,6 @@ namespace ocr
 
     NeuralNetworkOutput NeuralNetwork(const Array<float>& x, const NeuralNetworkParameters& params)
     {
-        return gpuNeuralNetwork(x, params);
+        return g_applicationSettings.useGpu ? gpuNeuralNetwork(x, params) : cpuNeuralNetwork(x, params);
     }
 }

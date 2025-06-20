@@ -4,6 +4,7 @@
 #include "BackPropagation.h"
 #include "DatasetImage.h"
 #include "DatasetLoader.h"
+#include "ApplicationSettings.h"
 #include "LivePPAddon.h"
 #include "NeuralNetwork.h"
 #include "TY/Gpgpu.h"
@@ -11,6 +12,7 @@
 #include "TY/Logger.h"
 #include "TY/Math.h"
 #include "TY/Random.h"
+#include "TY/Stopwatch.h"
 #include "TY/System.h"
 #include "TY/Texture.h"
 
@@ -153,6 +155,14 @@ struct EntryPointImpl
 
                 LogInfo.writeln("Computed!");
             }
+
+            ImGui::End();
+        }
+
+        {
+            ImGui::Begin("Global Settings");
+
+            ImGui::Checkbox("Use GPU", &g_applicationSettings.useGpu);
 
             ImGui::End();
         }
@@ -338,6 +348,8 @@ private:
 
     void computeAccuracy() const
     {
+        Stopwatch stopwatch{};
+
         int correctCount = 0;
         for (int i = 0; i < m_testImage.images.size(); ++i)
         {
@@ -351,7 +363,10 @@ private:
         }
 
         const float accuracy = static_cast<float>(correctCount) / m_testImage.images.size();
-        LogInfo.writeln(std::format("Training completed! Accuracy: {:.2f}", accuracy));
+        LogInfo.writeln(std::format(
+            "Training completed!\n- Accuracy: {:.2f}\n- Elapsed Time: {:.2f} seconds",
+            accuracy,
+            stopwatch.sF()));
     }
 };
 
