@@ -34,6 +34,24 @@ namespace
     constexpr float learningRate = 0.01;
 
     constexpr int epochCount = 5;
+
+    void setPixelsOnLine(Image& image, const Point& start, const Point& end, const ColorU8& color)
+    {
+        const int dx = end.x - start.x;
+        const int dy = end.y - start.y;
+        const int steps = Max(Abs(dx), Abs(dy));
+
+        for (int i = 0; i <= steps; ++i)
+        {
+            const float t = static_cast<float>(i) / steps;
+            const int x = static_cast<int>(start.x + dx * t);
+            const int y = static_cast<int>(start.y + dy * t);
+            if (image.inBounds(Point{x, y}))
+            {
+                image[Point{x, y}] = color;
+            }
+        }
+    }
 }
 
 struct EntryPointImpl
@@ -125,16 +143,22 @@ struct EntryPointImpl
         }
 
         {
-            constexpr float liveTextureScale = 8.0f;
+            constexpr float liveTextureScale = 12.0f;
 
             if (MouseL.pressed())
             {
-                const auto mousePos = Mouse::PosF();
                 const auto topRight = Scene::Center() - m_liveImage.size() * 0.5f * liveTextureScale;
-                const auto canvasPos = (mousePos - topRight) / liveTextureScale;
-                if (canvasPos.inBounds(Float2{0, 0}, m_liveImage.size() - Size::One()))
+                const auto canvasPos = (Mouse::PosF() - topRight) / liveTextureScale;
+                const auto previousCanvasPos = (Mouse::PreviousPosF() - topRight) / liveTextureScale;
+                if (canvasPos.inBounds(Size::Zero(), m_liveImage.size() - Size::One()) ||
+                    previousCanvasPos.inBounds(Size::Zero(), m_liveImage.size() - Size::One()))
                 {
-                    m_liveImage[canvasPos.asPoint()] = ColorF32{1.0f, 1.0f}.toColorU8();
+                    // Draw a line from previous position to current position
+                    setPixelsOnLine(
+                        m_liveImage,
+                        previousCanvasPos.asPoint(),
+                        canvasPos.asPoint(),
+                        ColorF32{1.0f, 1.0f}.toColorU8());
 
                     m_liveTexture.upload(m_liveImage);
                 }
