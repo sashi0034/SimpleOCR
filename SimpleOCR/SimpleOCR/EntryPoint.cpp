@@ -14,7 +14,7 @@
 #include "TY/Random.h"
 #include "TY/Stopwatch.h"
 #include "TY/System.h"
-#include "TY/Texture.h"
+#include "TY/TextureDrawer.h"
 
 using namespace TY;
 
@@ -45,7 +45,7 @@ struct EntryPointImpl
     VertexShader m_textureVS{};
 
     int m_trainImageIndex{};
-    Texture m_previewTexture{};
+    TextureDrawer m_previewTexture{};
     int m_predictedLabel{};
 
     DatasetImageList m_trainImages{};
@@ -169,10 +169,10 @@ struct EntryPointImpl
     }
 
 private:
-    Texture makePreviewTexture(int index) const
+    TextureDrawer makePreviewTexture(int index) const
     {
-        return Texture{
-            TextureParams()
+        return TextureDrawer{
+            TextureDrawerParams()
             .setSource(m_trainImages.images[index].imageView(m_trainImages.property))
             .setPS(m_texturePS)
             .setVS(m_textureVS)
