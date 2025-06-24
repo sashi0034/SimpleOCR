@@ -56,12 +56,6 @@ namespace
 
 struct EntryPointImpl
 {
-    ComputeShader m_computeShader{};
-    WritableGpgpuBuffer1D<uint32_t> m_buffer{};
-    ReadonlyGpgpuBuffer1D<uint32_t> m_readonlyData0{};
-    ReadonlyGpgpuBuffer1D<uint32_t> m_readonlyData1{};
-    Gpgpu m_gpgpu{};
-
     PixelShader m_texturePS{};
     VertexShader m_textureVS{};
 
@@ -83,30 +77,6 @@ struct EntryPointImpl
 
     EntryPointImpl()
     {
-        m_computeShader = ComputeShader{ShaderParams::CS("asset/shader/simple_compute.hlsl")};
-
-        m_buffer = WritableGpgpuBuffer1D<uint32_t>(100);
-        m_readonlyData0 = ReadonlyGpgpuBuffer1D<uint32_t>(50);
-        for (int i = 0; i < m_readonlyData0.data().size(); ++i)
-        {
-            m_readonlyData0.data()[i] = i * 10;
-        }
-
-        m_readonlyData1 = ReadonlyGpgpuBuffer1D<uint32_t>(100);
-        for (int i = 0; i < m_readonlyData1.data().size(); ++i)
-        {
-            m_readonlyData1.data()[i] = -i;
-        }
-
-        m_gpgpu = Gpgpu{
-            GpgpuParams{}
-            .setCS(m_computeShader)
-            .setWritableBuffer({m_buffer})
-            .setReadonlyBuffer({m_readonlyData0, m_readonlyData1,})
-        };
-
-        m_gpgpu.compute();
-
         m_trainImages = LoadMnistImages("asset/dataset/train-images.idx3-ubyte");
 
         m_trainLabels = LoadMnistLabels("asset/dataset/train-labels.idx1-ubyte");
@@ -190,31 +160,6 @@ struct EntryPointImpl
             if (ImGui::Button("Compute Accuracy"))
             {
                 computeAccuracy();
-            }
-
-            ImGui::End();
-        }
-
-        {
-            ImGui::Begin("Compute Shader");
-
-            const auto& data = m_buffer.data();
-            ImGui::Text("Element Count: %d", data.size());
-
-            ImGui::BeginGroup();
-            for (size_t i = 0; i < data.size(); ++i)
-            {
-                ImGui::Text("[%d] = %u", i, data[i]);
-                if (i % 4 == 3) ImGui::NewLine();
-            }
-
-            ImGui::EndGroup();
-
-            if (ImGui::Button("Compute"))
-            {
-                m_gpgpu.compute();
-
-                LogInfo.writeln("Computed!");
             }
 
             ImGui::End();
