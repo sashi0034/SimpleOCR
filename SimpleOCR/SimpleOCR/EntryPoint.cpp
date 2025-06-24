@@ -7,11 +7,14 @@
 #include "ApplicationSettings.h"
 #include "LivePPAddon.h"
 #include "NeuralNetwork.h"
+#include "TY/DynamicTexture.h"
 #include "TY/Gpgpu.h"
 #include "TY/Image.h"
 #include "TY/Logger.h"
 #include "TY/Math.h"
+#include "TY/Mouse.h"
 #include "TY/Random.h"
+#include "TY/Scene.h"
 #include "TY/Stopwatch.h"
 #include "TY/System.h"
 #include "TY/TextureDrawer.h"
@@ -56,6 +59,10 @@ struct EntryPointImpl
 
     NeuralNetworkParameters m_params{};
 
+    Image m_liveImage{};
+    DynamicTexture m_liveTexture{};
+    TextureDrawer m_liveTextureDrawer{};
+
     EntryPointImpl()
     {
         m_computeShader = ComputeShader{ShaderParams::CS("asset/shader/simple_compute.hlsl")};
@@ -98,12 +105,42 @@ struct EntryPointImpl
         m_trainImageIndex = 0;
         m_previewTexture = makePreviewTexture(m_trainImageIndex);
         m_predictedLabel = runNeuralNetwork(m_trainImageIndex);
+
+        // -----------------------------------------------
+
+        m_liveImage = Image{m_trainImages.property.size, ColorF32{0.0f, 1.0f}.toColorU8()};
+        m_liveTexture = DynamicTexture{m_liveImage};
+        m_liveTextureDrawer = TextureDrawer{
+            TextureDrawerParams()
+            .setSource(m_liveTexture.getResource())
+            .setPS(m_texturePS)
+            .setVS(m_textureVS)
+        };
     }
 
     void Update()
     {
         {
             m_previewTexture.as2D().scaled(4.0f).drawAt(Vec2{200, 200});
+        }
+
+        {
+            constexpr float liveTextureScale = 8.0f;
+
+            if (MouseL.pressed())
+            {
+                const auto mousePos = Mouse::PosF();
+                const auto topRight = Scene::Center() - m_liveImage.size() * 0.5f * liveTextureScale;
+                const auto canvasPos = (mousePos - topRight) / liveTextureScale;
+                if (canvasPos.inBounds(Float2{0, 0}, m_liveImage.size() - Size::One()))
+                {
+                    m_liveImage[canvasPos.asPoint()] = ColorF32{1.0f, 1.0f}.toColorU8();
+
+                    m_liveTexture.upload(m_liveImage);
+                }
+            }
+
+            m_liveTextureDrawer.as2D().scaled(liveTextureScale).drawAt(Scene::Center());
         }
 
         {
