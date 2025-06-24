@@ -35,7 +35,7 @@ namespace
 
     constexpr int epochCount = 5;
 
-    void setPixelsOnLine(Image& image, const Point& start, const Point& end, const ColorU8& color)
+    void drawline(Image& image, const Point& start, const Point& end, const ColorU8& color)
     {
         const int dx = end.x - start.x;
         const int dy = end.y - start.y;
@@ -46,7 +46,7 @@ namespace
             const float t = static_cast<float>(i) / steps;
             const int x = static_cast<int>(start.x + dx * t);
             const int y = static_cast<int>(start.y + dy * t);
-            if (image.inBounds(Point{x, y}))
+            if (image.inBounds(Point{x, y}) && color.r > image[Point{x, y}].r)
             {
                 image[Point{x, y}] = color;
             }
@@ -71,9 +71,12 @@ struct EntryPointImpl
 
     NeuralNetworkParameters m_params{};
 
-    Image m_liveImage{};
-    DynamicTexture m_liveTexture{};
-    TextureDrawer m_liveTextureDrawer{};
+    Image m_myImage{};
+    DynamicTexture m_myTexture{};
+    TextureDrawer m_myTextureDrawer{};
+    int m_myImageLabel{};
+
+    Array<std::string> m_epochMessages{};
 
     EntryPointImpl()
     {
@@ -96,11 +99,11 @@ struct EntryPointImpl
 
         // -----------------------------------------------
 
-        m_liveImage = Image{m_trainImages.property.size, ColorF32{0.0f, 1.0f}.toColorU8()};
-        m_liveTexture = DynamicTexture{m_liveImage};
-        m_liveTextureDrawer = TextureDrawer{
+        m_myImage = Image{m_trainImages.property.size, ColorF32{0.0f, 1.0f}.toColorU8()};
+        m_myTexture = DynamicTexture{m_myImage};
+        m_myTextureDrawer = TextureDrawer{
             TextureDrawerParams()
-            .setSource(m_liveTexture.getResource())
+            .setSource(m_myTexture.getResource())
             .setPS(m_texturePS)
             .setVS(m_textureVS)
         };
@@ -117,28 +120,61 @@ struct EntryPointImpl
 
             if (MouseL.pressed())
             {
-                const auto topRight = Scene::Center() - m_liveImage.size() * 0.5f * liveTextureScale;
+                const auto topRight = Scene::Center() - m_myImage.size() * 0.5f * liveTextureScale;
                 const auto canvasPos = (Mouse::PosF() - topRight) / liveTextureScale;
                 const auto previousCanvasPos = (Mouse::PreviousPosF() - topRight) / liveTextureScale;
-                if (canvasPos.inBounds(Size::Zero(), m_liveImage.size() - Size::One()) ||
-                    previousCanvasPos.inBounds(Size::Zero(), m_liveImage.size() - Size::One()))
+                if (canvasPos.inBounds(Size::Zero(), m_myImage.size() - Size::One()) ||
+                    previousCanvasPos.inBounds(Size::Zero(), m_myImage.size() - Size::One()))
                 {
                     // Draw a line from previous position to current position
-                    setPixelsOnLine(
-                        m_liveImage,
-                        previousCanvasPos.asPoint(),
-                        canvasPos.asPoint(),
-                        ColorF32{1.0f, 1.0f}.toColorU8());
+                    for (int x = -2; x <= 2; x++)
+                    {
+                        for (int y = -2; y <= 2; y++)
+                        {
+                            const float c = 1.0f - Float2{x, y}.lengthSq() * 0.15f;
+                            if (c < 0.0f) continue;
 
-                    m_liveTexture.upload(m_liveImage);
+                            drawline(
+                                m_myImage,
+                                previousCanvasPos.asPoint() + Point{x, y},
+                                canvasPos.asPoint() + Point{x, y},
+                                ColorF32{c, 1.0f}.toColorU8());
+                        }
+                    }
+
+                    m_myTexture.upload(m_myImage);
+
+                    m_myImageLabel = runNeuralNetwork(makeImageInput(m_myImage));
                 }
             }
 
-            m_liveTextureDrawer.as2D().scaled(liveTextureScale).drawAt(Scene::Center());
+            m_myTextureDrawer.as2D().scaled(liveTextureScale).drawAt(Scene::Center());
+
+            {
+                ImGui::Begin("My Image");
+
+                ImGui::Separator();
+
+                ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+                ImGui::Text("Predicted Label: %d", m_myImageLabel);
+                ImGui::PopStyleColor();
+
+                ImGui::Separator();
+
+                if (ImGui::Button("Clear"))
+                {
+                    m_myImage.fill(ColorF32{0.0f, 1.0f}.toColorU8());
+                    m_myTexture.upload(m_myImage);
+                }
+
+                ImGui::End();
+            }
         }
 
         {
-            ImGui::Begin("Train Images");
+            ImGui::Begin("Machine Learning");
+
+            ImGui::Text("Current Train Image");
 
             if (ImGui::InputInt("Index", &m_trainImageIndex))
             {
@@ -152,14 +188,40 @@ struct EntryPointImpl
 
             ImGui::Text("Predicted Label: %d", m_predictedLabel);
 
+            ImGui::Separator();
+
             if (ImGui::Button("Execute Machine Learning"))
             {
                 machineLearning();
             }
 
+            static float s_accuracy{};
+
             if (ImGui::Button("Compute Accuracy"))
             {
-                computeAccuracy();
+                s_accuracy = computeAccuracy();
+            }
+
+            ImGui::Separator();
+            ImGui::Text("Accuracy: %.2f%%", s_accuracy * 100.0f);
+            ImGui::Separator();
+
+            ImGui::End();
+        }
+
+        {
+            ImGui::Begin("Epoch Messages");
+
+            ImGui::Text("Epoch Messages:");
+
+            for (const auto& message : m_epochMessages)
+            {
+                ImGui::TextUnformatted(message.c_str());
+            }
+
+            if (ImGui::Button("Clear Messages"))
+            {
+                m_epochMessages.clear();
             }
 
             ImGui::End();
@@ -202,9 +264,13 @@ private:
         return neuralInput;
     }
 
-    int runNeuralNetwork(int index)
+    int runNeuralNetwork(int index) const
     {
-        const auto x = makeImageInput(m_trainImages.images[index]);
+        return runNeuralNetwork(makeImageInput(m_trainImages.images[index]));
+    }
+
+    int runNeuralNetwork(const Array<float>& x) const
+    {
         const NeuralNetworkOutput neuralOutput = NeuralNetwork(x, m_params);
         return neuralOutput.maxIndex();
     }
@@ -332,6 +398,8 @@ private:
 
             averageLoss /= static_cast<float>(batchesPerEpoch * batchSize);
 
+            m_epochMessages.push_back(std::format("Epoch {}:\n- Average Loss = {:.6f}", epoch + 1, averageLoss));
+
             LogInfo.writeln(std::format("Average Loss: {:.6f}", averageLoss));
 
             if (Abs(averageLoss - previousAverageLoss) < lossTermination)
@@ -352,7 +420,15 @@ private:
         });
     }
 
-    void computeAccuracy() const
+    Array<float> makeImageInput(const Image& image) const
+    {
+        return image.data().map([](ColorU8 pixel)
+        {
+            return static_cast<float>(pixel.r) / 255.0f;
+        });
+    }
+
+    float computeAccuracy() const
     {
         Stopwatch stopwatch{};
 
@@ -373,6 +449,8 @@ private:
             "Training completed!\n- Accuracy: {:.2f}\n- Elapsed Time: {:.2f} seconds",
             accuracy,
             stopwatch.sF()));
+
+        return accuracy;
     }
 };
 
