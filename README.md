@@ -2,7 +2,7 @@
 
 This is an experimental project for my studies.
 
-# About
+## About
 
 **SimpleOCR** is a compact demonstration project for experimenting with optical character recognition (OCR) using a
 basic feed-forward neural network. The code trains and evaluates a neural network on the MNIST handwritten digit
