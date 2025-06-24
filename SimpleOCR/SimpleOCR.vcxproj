@@ -157,36 +157,20 @@
     <ClCompile Include="SimpleOCR\NeuralNetwork.cpp" />
     <ClCompile Include="SimpleOCR\NP.cpp" />
     <Content Include="asset\cs\forward_linear.hlsl" />
-    <Content Include="asset\shader\simple_compute.hlsl" />
     <Content Include=".gitignore" />
     <Content Include="asset\gamepad.toml" />
     <Content Include="asset\model\.gitignore" />
-    <Content Include="asset\model\dirty_plane.mtl" />
-    <Content Include="asset\model\dirty_plane.obj" />
-    <Content Include="asset\shader\phong.hlsl" />
     <Content Include="asset\shader\default2d.hlsl" />
-    <Content Include="asset\shader\lambert.hlsl" />
     <ClCompile Include="LivePPAddon.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <Content Include="asset\image\fairy_1024x1024.png" />
-    <Content Include="asset\image\mii.png" />
-    <Content Include="asset\image\violet_900x1600.png" />
-    <Content Include="asset\model\cinnamon.mtl" />
-    <Content Include="asset\model\cinnamon.obj" />
-    <Content Include="asset\model\cinnamon_face.png" />
-    <Content Include="asset\model\robot_head.mtl" />
-    <Content Include="asset\model\robot_head.obj" />
-    <Content Include="asset\shader\basic_pixel.hlsl" />
-    <Content Include="asset\shader\basic_vertex.hlsl" />
     <Content Include="asset\shader\model_pixel.hlsl" />
     <Content Include="asset\shader\model_vertex.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="asset\shader\basic.hlsli" />
     <ClInclude Include="asset\shader\model.hlsli" />
     <ClInclude Include="LivePPAddon.h" />
     <ClInclude Include="pch.h" />
